@@ -98,7 +98,7 @@ export const createProductTool = createTool({
       .min(0)
       .optional()
       .describe('Price in integer tambala, for example 12500 for K125.00'),
-    currency: z.string().optional().describe('Currency code. Defaults to MWK.'),
+    currency: z.string().optional().describe('Currency code. Defaults to USD.'),
     imageUrl: z.string().optional().describe('Product image URL'),
   }),
   outputSchema: productSchema,
