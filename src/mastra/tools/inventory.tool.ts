@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
 import { compactPayload } from '../lib/malawi-input';
+import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { statusResponseSchema, stockSchema } from '../lib/malawi-schemas';
 
@@ -23,7 +24,8 @@ export const getStockTool = createTool({
   }),
   outputSchema: stockSchema,
   requestContextSchema,
-  execute: async ({ productId, variantId }, { requestContext }) => {
+  execute: async ({ productId, variantId }, { requestContext, observe }) => {
+    logToolStart('get-stock', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.inventory.getStock(
@@ -47,7 +49,8 @@ export const setStockTool = createTool({
   }),
   outputSchema: stockSchema,
   requestContextSchema,
-  execute: async ({ productId, variantId, qty }, { requestContext }) => {
+  execute: async ({ productId, variantId, qty }, { requestContext, observe }) => {
+    logToolStart('set-stock', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.inventory.setStock(
@@ -77,7 +80,8 @@ export const reserveStockTool = createTool({
   }),
   outputSchema: statusResponseSchema,
   requestContextSchema,
-  execute: async ({ orderRef, lines, ttlSeconds }, { requestContext }) => {
+  execute: async ({ orderRef, lines, ttlSeconds }, { requestContext, observe }) => {
+    logToolStart('reserve-stock', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.inventory.reserve(
@@ -104,7 +108,8 @@ export const releaseStockTool = createTool({
   }),
   outputSchema: statusResponseSchema,
   requestContextSchema,
-  execute: async ({ orderRef }, { requestContext }) => {
+  execute: async ({ orderRef }, { requestContext, observe }) => {
+    logToolStart('release-stock', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.inventory.release(orderRef);
@@ -121,7 +126,8 @@ export const confirmStockTool = createTool({
   }),
   outputSchema: statusResponseSchema,
   requestContextSchema,
-  execute: async ({ orderRef }, { requestContext }) => {
+  execute: async ({ orderRef }, { requestContext, observe }) => {
+    logToolStart('confirm-stock', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.inventory.confirm(orderRef);

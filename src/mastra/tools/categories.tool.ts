@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
 import { compactPayload } from '../lib/malawi-input';
+import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { categorySchema, successSchema } from '../lib/malawi-schemas';
 
@@ -14,7 +15,8 @@ export const listCategoriesTool = createTool({
   inputSchema: z.object({}),
   outputSchema: z.array(categorySchema),
   requestContextSchema,
-  execute: async (_input, { requestContext }) => {
+  execute: async (_input, { requestContext, observe }) => {
+    logToolStart('list-categories', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.categories.list();
   },
@@ -34,7 +36,8 @@ export const getCategoryTool = createTool({
   ]),
   outputSchema: categorySchema,
   requestContextSchema,
-  execute: async (input, { requestContext }) => {
+  execute: async (input, { requestContext, observe }) => {
+    logToolStart('get-category', observe, requestContext);
     const store = createMalawiStore(requestContext);
     if ('id' in input) return store.categories.get(input.id);
     return store.categories.getBySlug(input.slug);
@@ -61,7 +64,8 @@ export const createCategoryTool = createTool({
   }),
   outputSchema: categorySchema,
   requestContextSchema,
-  execute: async (input, { requestContext }) => {
+  execute: async (input, { requestContext, observe }) => {
+    logToolStart('create-category', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.categories.create(
@@ -93,7 +97,8 @@ export const updateCategoryTool = createTool({
   }),
   outputSchema: categorySchema,
   requestContextSchema,
-  execute: async (input, { requestContext }) => {
+  execute: async (input, { requestContext, observe }) => {
+    logToolStart('update-category', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.categories.update(
@@ -118,7 +123,8 @@ export const deleteCategoryTool = createTool({
   }),
   outputSchema: successSchema,
   requestContextSchema,
-  execute: async ({ id }, { requestContext }) => {
+  execute: async ({ id }, { requestContext, observe }) => {
+    logToolStart('delete-category', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     await store.categories.delete(id);

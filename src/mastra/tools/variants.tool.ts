@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
 import { compactPayload } from '../lib/malawi-input';
+import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { successSchema, variantSchema } from '../lib/malawi-schemas';
 
@@ -16,7 +17,8 @@ export const listVariantsTool = createTool({
   }),
   outputSchema: z.array(variantSchema),
   requestContextSchema,
-  execute: async ({ productId }, { requestContext }) => {
+  execute: async ({ productId }, { requestContext, observe }) => {
+    logToolStart('list-variants', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.variants.list(productId);
   },
@@ -40,7 +42,8 @@ export const createVariantTool = createTool({
   }),
   outputSchema: variantSchema,
   requestContextSchema,
-  execute: async (input, { requestContext }) => {
+  execute: async (input, { requestContext, observe }) => {
+    logToolStart('create-variant', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.variants.create(
@@ -72,7 +75,8 @@ export const updateVariantTool = createTool({
   }),
   outputSchema: variantSchema,
   requestContextSchema,
-  execute: async (input, { requestContext }) => {
+  execute: async (input, { requestContext, observe }) => {
+    logToolStart('update-variant', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.variants.update(
@@ -95,7 +99,8 @@ export const deleteVariantTool = createTool({
   }),
   outputSchema: successSchema,
   requestContextSchema,
-  execute: async ({ id }, { requestContext }) => {
+  execute: async ({ id }, { requestContext, observe }) => {
+    logToolStart('delete-variant', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     await store.variants.delete(id);

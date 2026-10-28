@@ -100,13 +100,18 @@ type ExecutableTool = {
   execute?: (...args: any[]) => unknown;
 };
 
+type ToolObserve = {
+  log: (...args: any[]) => void;
+};
+
 export async function executeTool(
   tool: ExecutableTool,
   input: unknown,
   requestContext: RequestContext<MalawiContext>,
+  observe?: ToolObserve,
 ): Promise<unknown> {
   if (!tool.execute) throw new Error('Tool has no execute function');
-  return tool.execute(input, { requestContext });
+  return tool.execute(input, { requestContext, observe });
 }
 
 type ParseableSchema = {

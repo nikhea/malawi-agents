@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema } from '../lib/malawi-context';
+import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { paymentSchema } from '../lib/malawi-schemas';
 
@@ -20,7 +21,8 @@ export const createPaymentIntentTool = createTool({
     ...output,
     client_secret: '[redacted]',
   }),
-  execute: async ({ orderId }, { requestContext }) => {
+  execute: async ({ orderId }, { requestContext, observe }) => {
+    logToolStart('create-payment-intent', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.payments.createIntent(orderId);
   },

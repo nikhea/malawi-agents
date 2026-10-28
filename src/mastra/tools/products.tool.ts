@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
 import { compactPayload } from '../lib/malawi-input';
+import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import {
   productDetailSchema,
@@ -41,8 +42,9 @@ export const listProductsTool = createTool({
   requestContextSchema,
   execute: async (
     { categoryId, activeOnly, limit, offset },
-    { requestContext },
+    { requestContext, observe },
   ) => {
+    logToolStart('list-products', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.products.list(
       compactPayload({
@@ -69,7 +71,8 @@ export const getProductTool = createTool({
   ]),
   outputSchema: productDetailSchema,
   requestContextSchema,
-  execute: async (input, { requestContext }) => {
+  execute: async (input, { requestContext, observe }) => {
+    logToolStart('get-product', observe, requestContext);
     const store = createMalawiStore(requestContext);
     if ('id' in input) return store.products.get(input.id);
     return store.products.getBySlug(input.slug);
@@ -100,7 +103,8 @@ export const createProductTool = createTool({
   }),
   outputSchema: productSchema,
   requestContextSchema,
-  execute: async (input, { requestContext }) => {
+  execute: async (input, { requestContext, observe }) => {
+    logToolStart('create-product', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.products.create(
@@ -142,7 +146,8 @@ export const updateProductTool = createTool({
   }),
   outputSchema: productSchema,
   requestContextSchema,
-  execute: async (input, { requestContext }) => {
+  execute: async (input, { requestContext, observe }) => {
+    logToolStart('update-product', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.products.update(
@@ -170,7 +175,8 @@ export const deleteProductTool = createTool({
   }),
   outputSchema: successSchema,
   requestContextSchema,
-  execute: async ({ id }, { requestContext }) => {
+  execute: async ({ id }, { requestContext, observe }) => {
+    logToolStart('delete-product', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     await store.products.delete(id);

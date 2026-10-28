@@ -55,6 +55,23 @@ describe('listProductsTool', () => {
     expectValidOutput(listProductsTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/products?active_only=true'));
   });
+
+  it('logs a structured start event with the authenticated user', async () => {
+    stubFetch(() => jsonResponse({ data: [] }));
+    const observe = { log: vi.fn() };
+
+    await executeTool(listProductsTool, {}, context(), observe);
+
+    expect(observe.log).toHaveBeenCalledWith(
+      'info',
+      'tool.started',
+      expect.objectContaining({
+        toolId: 'list-products',
+        userId: 'user-1',
+        userRole: 'customer',
+      }),
+    );
+  });
 });
 
 describe('getProductTool', () => {

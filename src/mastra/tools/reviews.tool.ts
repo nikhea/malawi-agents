@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
 import { compactPayload } from '../lib/malawi-input';
+import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import {
   reviewSchema,
@@ -32,7 +33,8 @@ export const getProductReviewsTool = createTool({
   }),
   outputSchema: reviewSummarySchema,
   requestContextSchema,
-  execute: async ({ productId }, { requestContext }) => {
+  execute: async ({ productId }, { requestContext, observe }) => {
+    logToolStart('get-product-reviews', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.reviews.summary(productId);
   },
@@ -56,7 +58,8 @@ export const createReviewTool = createTool({
   }),
   outputSchema: reviewSchema,
   requestContextSchema,
-  execute: async (input, { requestContext }) => {
+  execute: async (input, { requestContext, observe }) => {
+    logToolStart('create-review', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.reviews.create(
       input.productId,
@@ -80,7 +83,8 @@ export const updateReviewTool = createTool({
   }),
   outputSchema: reviewSchema,
   requestContextSchema,
-  execute: async (input, { requestContext }) => {
+  execute: async (input, { requestContext, observe }) => {
+    logToolStart('update-review', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.reviews.update(
       input.reviewId,
@@ -102,7 +106,8 @@ export const deleteReviewTool = createTool({
   }),
   outputSchema: successSchema,
   requestContextSchema,
-  execute: async ({ reviewId }, { requestContext }) => {
+  execute: async ({ reviewId }, { requestContext, observe }) => {
+    logToolStart('delete-review', observe, requestContext);
     const store = createMalawiStore(requestContext);
     await store.reviews.delete(reviewId);
     return { success: true as const };
@@ -119,7 +124,8 @@ export const deleteAnyReviewTool = createTool({
   }),
   outputSchema: successSchema,
   requestContextSchema,
-  execute: async ({ reviewId }, { requestContext }) => {
+  execute: async ({ reviewId }, { requestContext, observe }) => {
+    logToolStart('delete-any-review', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     await store.reviews.deleteAny(reviewId);

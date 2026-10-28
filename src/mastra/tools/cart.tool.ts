@@ -2,6 +2,7 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema } from '../lib/malawi-context';
 import { compactPayload } from '../lib/malawi-input';
+import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { cartSchema, successSchema } from '../lib/malawi-schemas';
 
@@ -14,7 +15,8 @@ export const getCartTool = createTool({
   inputSchema: z.object({}),
   outputSchema: cartSchema,
   requestContextSchema,
-  execute: async (_input, { requestContext }) => {
+  execute: async (_input, { requestContext, observe }) => {
+    logToolStart('get-cart', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.cart.get();
   },
@@ -39,7 +41,8 @@ export const addCartItemTool = createTool({
   }),
   outputSchema: cartSchema,
   requestContextSchema,
-  execute: async ({ productId, variantId, qty }, { requestContext }) => {
+  execute: async ({ productId, variantId, qty }, { requestContext, observe }) => {
+    logToolStart('add-cart-item', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.cart.addItem(
       compactPayload({
@@ -66,7 +69,8 @@ export const setCartItemQtyTool = createTool({
   }),
   outputSchema: cartSchema,
   requestContextSchema,
-  execute: async ({ itemId, qty }, { requestContext }) => {
+  execute: async ({ itemId, qty }, { requestContext, observe }) => {
+    logToolStart('set-cart-item-qty', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.cart.setQty(itemId, qty);
   },
@@ -82,7 +86,8 @@ export const removeCartItemTool = createTool({
   }),
   outputSchema: cartSchema,
   requestContextSchema,
-  execute: async ({ itemId }, { requestContext }) => {
+  execute: async ({ itemId }, { requestContext, observe }) => {
+    logToolStart('remove-cart-item', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.cart.removeItem(itemId);
   },
@@ -96,7 +101,8 @@ export const clearCartTool = createTool({
   inputSchema: z.object({}),
   outputSchema: successSchema,
   requestContextSchema,
-  execute: async (_input, { requestContext }) => {
+  execute: async (_input, { requestContext, observe }) => {
+    logToolStart('clear-cart', observe, requestContext);
     const store = createMalawiStore(requestContext);
     await store.cart.clear();
     return { success: true as const };

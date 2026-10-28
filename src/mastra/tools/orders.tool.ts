@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema } from '../lib/malawi-context';
+import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { orderSchema } from '../lib/malawi-schemas';
 
@@ -14,7 +15,8 @@ export const checkoutOrderTool = createTool({
   inputSchema: z.object({}),
   outputSchema: orderSchema,
   requestContextSchema,
-  execute: async (_input, { requestContext }) => {
+  execute: async (_input, { requestContext, observe }) => {
+    logToolStart('checkout-order', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.orders.checkout();
   },
@@ -27,7 +29,8 @@ export const listOrdersTool = createTool({
   inputSchema: z.object({}),
   outputSchema: z.array(orderSchema),
   requestContextSchema,
-  execute: async (_input, { requestContext }) => {
+  execute: async (_input, { requestContext, observe }) => {
+    logToolStart('list-orders', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.orders.list();
   },
@@ -42,7 +45,8 @@ export const getOrderTool = createTool({
   }),
   outputSchema: orderSchema,
   requestContextSchema,
-  execute: async ({ id }, { requestContext }) => {
+  execute: async ({ id }, { requestContext, observe }) => {
+    logToolStart('get-order', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.orders.get(id);
   },
@@ -58,7 +62,8 @@ export const cancelOrderTool = createTool({
   }),
   outputSchema: orderSchema,
   requestContextSchema,
-  execute: async ({ id }, { requestContext }) => {
+  execute: async ({ id }, { requestContext, observe }) => {
+    logToolStart('cancel-order', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.orders.cancel(id);
   },

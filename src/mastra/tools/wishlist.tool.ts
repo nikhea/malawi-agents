@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema } from '../lib/malawi-context';
+import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import {
   statusResponseSchema,
@@ -16,7 +17,8 @@ export const listWishlistTool = createTool({
   inputSchema: z.object({}),
   outputSchema: z.array(wishlistItemSchema),
   requestContextSchema,
-  execute: async (_input, { requestContext }) => {
+  execute: async (_input, { requestContext, observe }) => {
+    logToolStart('list-wishlist', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.wishlist.list();
   },
@@ -32,7 +34,8 @@ export const addToWishlistTool = createTool({
   }),
   outputSchema: wishlistItemSchema,
   requestContextSchema,
-  execute: async ({ productId }, { requestContext }) => {
+  execute: async ({ productId }, { requestContext, observe }) => {
+    logToolStart('add-to-wishlist', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.wishlist.add(productId);
   },
@@ -48,7 +51,8 @@ export const removeFromWishlistTool = createTool({
   }),
   outputSchema: statusResponseSchema,
   requestContextSchema,
-  execute: async ({ productId }, { requestContext }) => {
+  execute: async ({ productId }, { requestContext, observe }) => {
+    logToolStart('remove-from-wishlist', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.wishlist.remove(productId);
   },

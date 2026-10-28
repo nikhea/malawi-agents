@@ -35,6 +35,22 @@ Prices are integer tambala: `12500` means K125.00.
 
 Mutating tools set `requireApproval: true`, so an agent pauses for explicit approval before any create, update, delete, checkout, payment, wishlist, review, role, or inventory change. Optional API inputs are passed through `compactPayload`, which drops empty strings instead of forwarding blank query params or body fields.
 
+## Observability, storage, and pub/sub
+
+Mastra uses three backends:
+
+| Backend | Purpose | Configuration |
+| --- | --- | --- |
+| PostgreSQL (`@mastra/pg`) | Main store: threads, messages, workflows, memory | `MASTRA_DATABASE_URL` (falls back to `DATABASE_URL`) |
+| DuckDB (`@mastra/duckdb`) | Observability: traces, logs, metrics, scores, feedback | `DUCKDB_PATH`, `DUCKDB_MEMORY_LIMIT` |
+| Redis Streams (`@mastra/redis-streams`) | Distributed pub/sub and run leases | `REDIS_URL` |
+
+Storage is composed in `src/mastra/lib/malawi-runtime.ts`: `PostgresStore` is the default domain and `DuckDBStore` supplies the `observability` domain. `MastraStorageExporter` writes spans and structured logs to DuckDB, while `MastraPlatformExporter` forwards them to the Mastra platform when `MASTRA_PLATFORM_ACCESS_TOKEN` is set.
+
+Every tool calls `logToolStart()` inside `execute()`. Each event is written through `context.observe.log()` as `tool.started` with the tool ID and authenticated user details (`userId`, `userEmail`, `userName`, `userRole`, `resourceId`). Access and refresh tokens are never logged or copied onto spans.
+
+The observability config also sets `requestContextKeys`, so the same identity fields and `MASTRA_THREAD_ID_KEY` are attached to every trace span. `SensitiveDataFilter` redacts credentials and other sensitive values before export. Tool logs are forwarded at `info` and above.
+
 ## Authentication
 
 `malawiAuthMiddleware` protects the agent and workflow API routes:
@@ -75,6 +91,14 @@ Copy `.env.example` to `.env` and set:
 | --- | --- |
 | `MALAWI_API_BASE_URL` | Store API base URL, including `/api/v1`. Defaults to `http://localhost:8080/api/v1`. |
 | `GROQ_API_KEY` | Model provider key used by the example agent. |
+| `MASTRA_DATABASE_URL` | PostgreSQL connection string for Mastra's main storage. Falls back to `DATABASE_URL`. |
+| `DUCKDB_PATH` | DuckDB file for observability data. Defaults to `mastra.duckdb`. |
+| `DUCKDB_MEMORY_LIMIT` | DuckDB memory ceiling. Defaults to `2GB`. |
+| `REDIS_URL` | Redis connection string for pub/sub. Defaults to `redis://localhost:6379`. |
+| `REDIS_PUBSUB_KEY_PREFIX` | Prefix for Redis Streams keys. Defaults to `mastra:topic`. |
+| `REDIS_STREAM_IDLE_TTL_MS` | Idle stream TTL in milliseconds. Defaults to seven days. |
+| `MASTRA_LOG_LEVEL` | Pino log level: `debug`, `info`, `warn`, or `error`. Defaults to `info`. |
+| `MASTRA_SERVICE_NAME` | Service name attached to traces. Defaults to `malawi-agents`. |
 
 Access and refresh tokens are supplied per request, not stored in the environment.
 
