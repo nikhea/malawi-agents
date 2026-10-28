@@ -11,7 +11,7 @@ import type {
   User,
   Variant,
   WishlistItem,
-} from '@nikhea/store-sdk';
+} from '@malawistore/store-sdk';
 
 export const product: Product = {
   id: 'prod-1',
@@ -21,7 +21,7 @@ export const product: Product = {
   slug: 'sunseed-cooking-oil-2l',
   description: 'Refined sunflower cooking oil.',
   price_cents: 12500,
-  currency: 'MWK',
+  currency: 'USD',
   image_url: 'https://cdn.example.mw/oil.jpg',
   is_active: true,
   created_at: '2026-10-01T10:00:00Z',
@@ -34,6 +34,8 @@ export const variant: Variant = {
   sku: 'OIL-2L',
   price_cents: 12500,
   is_active: true,
+  available: 24,
+  in_stock: true,
   created_at: '2026-10-01T10:00:00Z',
 };
 
@@ -46,6 +48,8 @@ export const productDetail: ProductDetail = {
       sku: variant.sku,
       price_cents: variant.price_cents,
       is_active: variant.is_active,
+      available: variant.available,
+      in_stock: variant.in_stock,
     },
   ],
 };
@@ -69,13 +73,13 @@ export const cart: Cart = {
       name: product.name,
       sku: 'OIL-2L',
       unit_price_cents: 12500,
-      currency: 'MWK',
+      currency: 'USD',
       qty: 2,
       line_total_cents: 25000,
     },
   ],
   subtotal_cents: 25000,
-  currency: 'MWK',
+  currency: 'USD',
   updated_at: '2026-10-01T10:00:00Z',
 };
 
@@ -84,7 +88,7 @@ export const order: Order = {
   user_id: 'user-1',
   status: 'pending',
   subtotal_cents: 25000,
-  currency: 'MWK',
+  currency: 'USD',
   lines: [
     {
       product_id: product.id,

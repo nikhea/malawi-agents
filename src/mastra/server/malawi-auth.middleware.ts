@@ -3,7 +3,7 @@ import {
   type RequestContext,
 } from '@mastra/core/request-context';
 import type { MiddlewareHandler } from '@mastra/core/server';
-import { MalawiStore, isMalawiStoreError } from '@nikhea/store-sdk';
+import { MalawiStore, isMalawiStoreError } from '@malawistore/store-sdk';
 import type { MalawiContext } from '../lib/malawi-context';
 import { malawiApiBaseUrl } from '../lib/malawi-store';
 

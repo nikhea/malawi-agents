@@ -16,7 +16,7 @@ You can start editing files inside the `src/mastra` directory. The development s
 
 ## Malawi Store tools
 
-The project exposes 40 tools built on [`@nikhea/store-sdk`](https://www.npmjs.com/package/@nikhea/store-sdk). Tools are grouped by domain in `src/mastra/tools/` and registered in `src/mastra/index.ts`. Attach them to an agent's `tools` list to let that agent call them.
+The project exposes 40 tools built on [`@malawistore/store-sdk`](https://www.npmjs.com/package/@malawistore/store-sdk). Tools are grouped by domain in `src/mastra/tools/` and registered in `src/mastra/index.ts`. Attach them to an agent's `tools` list to let that agent call them.
 
 | File | Tools |
 | --- | --- |

@@ -30,6 +30,8 @@ export const productVariantViewSchema = z.object({
   sku: z.string(),
   price_cents: z.number().int(),
   is_active: z.boolean(),
+  available: z.number().int(),
+  in_stock: z.boolean(),
 });
 
 export const productDetailSchema = z.object({
@@ -54,6 +56,8 @@ export const variantSchema = z.object({
   sku: z.string(),
   price_cents: z.number().int(),
   is_active: z.boolean(),
+  available: z.number().int(),
+  in_stock: z.boolean(),
   created_at: z.string(),
 });
 
