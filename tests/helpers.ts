@@ -1,5 +1,5 @@
 import { RequestContext } from '@mastra/core/request-context';
-import { vi } from 'vitest';
+import { expect, vi } from 'vitest';
 import type { MalawiContext } from '../src/mastra/lib/malawi-context';
 
 export const TEST_BASE_URL = 'https://store.test/api/v1';
@@ -107,6 +107,35 @@ export async function executeTool(
 ): Promise<unknown> {
   if (!tool.execute) throw new Error('Tool has no execute function');
   return tool.execute(input, { requestContext });
+}
+
+type ParseableSchema = {
+  safeParse: (value: unknown) => { success: boolean };
+};
+
+/** Asserts that a tool result satisfies the tool's declared output schema. */
+export function expectValidOutput(schema: unknown, value: unknown): void {
+  const parseable = schema as ParseableSchema | undefined;
+  if (!parseable?.safeParse) throw new Error('Tool has no output schema');
+  expect(parseable.safeParse(value).success).toBe(true);
+}
+
+/**
+ * Asserts that a tool rejects an unauthenticated request-context and never
+ * reaches the Store API.
+ */
+export async function expectRequestContextRequired(
+  tool: ExecutableTool,
+  input: unknown,
+): Promise<void> {
+  const result = (await executeTool(
+    tool,
+    input,
+    new RequestContext<MalawiContext>(),
+  )) as { error?: boolean; message?: string };
+
+  expect(result.error).toBe(true);
+  expect(result.message).toContain('Request context validation failed');
 }
 
 export function headersOf(init: RequestInit): Record<string, string> {

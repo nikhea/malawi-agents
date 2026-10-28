@@ -8,6 +8,8 @@ import {
   bodyOf,
   context,
   executeTool,
+  expectRequestContextRequired,
+  expectValidOutput,
   jsonResponse,
   stubFetch,
 } from '../helpers';
@@ -27,6 +29,7 @@ describe('createPaymentIntentTool', () => {
     );
 
     expect(result).toEqual(payment);
+    expectValidOutput(createPaymentIntentTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/payments/intents'));
     expect(calls[0].init.method).toBe('POST');
     expect(bodyOf(calls[0].init)).toEqual({ order_id: 'order-1' });
@@ -40,5 +43,17 @@ describe('createPaymentIntentTool', () => {
       id: 'pay-1',
       client_secret: '[redacted]',
     });
+  });
+});
+
+describe('request context', () => {
+  it('requires an authenticated context', async () => {
+    const { calls } = stubFetch();
+
+    await expectRequestContextRequired(createPaymentIntentTool, {
+      orderId: 'order-1',
+    });
+
+    expect(calls).toHaveLength(0);
   });
 });

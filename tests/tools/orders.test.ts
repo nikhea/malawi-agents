@@ -12,6 +12,8 @@ import {
   authorizationOf,
   context,
   executeTool,
+  expectRequestContextRequired,
+  expectValidOutput,
   jsonResponse,
   stubFetch,
 } from '../helpers';
@@ -27,6 +29,7 @@ describe('checkoutOrderTool', () => {
     const result = await executeTool(checkoutOrderTool, {}, context());
 
     expect(result).toEqual(order);
+    expectValidOutput(checkoutOrderTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/orders/checkout'));
     expect(calls[0].init.method).toBe('POST');
     expect(authorizationOf(calls[0].init)).toBe('Bearer access-token');
@@ -40,6 +43,7 @@ describe('listOrdersTool', () => {
     const result = await executeTool(listOrdersTool, {}, context());
 
     expect(result).toEqual([order]);
+    expectValidOutput(listOrdersTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/orders'));
     expect(calls[0].init.method).toBe('GET');
   });
@@ -52,6 +56,7 @@ describe('getOrderTool', () => {
     const result = await executeTool(getOrderTool, { id: 'order-1' }, context());
 
     expect(result).toEqual(order);
+    expectValidOutput(getOrderTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/orders/order-1'));
   });
 });
@@ -68,7 +73,27 @@ describe('cancelOrderTool', () => {
     );
 
     expect(result).toEqual(cancelled);
+    expectValidOutput(cancelOrderTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/orders/order-1/cancel'));
     expect(calls[0].init.method).toBe('POST');
+  });
+});
+
+describe('request context', () => {
+  it('requires an authenticated context for every order tool', async () => {
+    const { calls } = stubFetch();
+
+    const cases = [
+      [checkoutOrderTool, {}],
+      [listOrdersTool, {}],
+      [getOrderTool, { id: 'order-1' }],
+      [cancelOrderTool, { id: 'order-1' }],
+    ] as const;
+
+    for (const [tool, input] of cases) {
+      await expectRequestContextRequired(tool, input);
+    }
+
+    expect(calls).toHaveLength(0);
   });
 });

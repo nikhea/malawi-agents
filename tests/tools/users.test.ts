@@ -12,6 +12,8 @@ import {
   bodyOf,
   context,
   executeTool,
+  expectRequestContextRequired,
+  expectValidOutput,
   jsonResponse,
   stubFetch,
 } from '../helpers';
@@ -27,6 +29,7 @@ describe('getMeTool', () => {
     const result = await executeTool(getMeTool, {}, context());
 
     expect(result).toEqual(user);
+    expectValidOutput(getMeTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/users/me'));
     expect(authorizationOf(calls[0].init)).toBe('Bearer access-token');
   });
@@ -39,6 +42,7 @@ describe('getUserTool', () => {
     const result = await executeTool(getUserTool, { id: 'user-1' }, context());
 
     expect(result).toEqual(user);
+    expectValidOutput(getUserTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/users/user-1'));
   });
 });
@@ -55,6 +59,7 @@ describe('setUserRoleTool', () => {
     );
 
     expect(result).toEqual(admin);
+    expectValidOutput(setUserRoleTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/admin/users/user-1/role'));
     expect(calls[0].init.method).toBe('PATCH');
     expect(bodyOf(calls[0].init)).toEqual({ role: 'admin' });
@@ -70,6 +75,24 @@ describe('setUserRoleTool', () => {
         context(),
       ),
     ).rejects.toThrow(/admin/i);
+
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('request context', () => {
+  it('requires an authenticated context for every user tool', async () => {
+    const { calls } = stubFetch();
+
+    const cases = [
+      [getMeTool, {}],
+      [getUserTool, { id: 'user-1' }],
+      [setUserRoleTool, { id: 'user-1', role: 'admin' }],
+    ] as const;
+
+    for (const [tool, input] of cases) {
+      await expectRequestContextRequired(tool, input);
+    }
 
     expect(calls).toHaveLength(0);
   });

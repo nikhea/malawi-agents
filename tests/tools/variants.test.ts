@@ -12,6 +12,8 @@ import {
   bodyOf,
   context,
   executeTool,
+  expectRequestContextRequired,
+  expectValidOutput,
   jsonResponse,
   stubFetch,
 } from '../helpers';
@@ -31,6 +33,7 @@ describe('listVariantsTool', () => {
     );
 
     expect(result).toEqual([variant]);
+    expectValidOutput(listVariantsTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/products/prod-1/variants'));
   });
 });
@@ -46,6 +49,7 @@ describe('createVariantTool', () => {
     );
 
     expect(result).toEqual(variant);
+    expectValidOutput(createVariantTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/products/prod-1/variants'));
     expect(calls[0].init.method).toBe('POST');
     expect(bodyOf(calls[0].init)).toEqual({
@@ -74,12 +78,13 @@ describe('updateVariantTool', () => {
   it('updates a variant as an admin', async () => {
     const { calls } = stubFetch(() => jsonResponse({ data: variant }));
 
-    await executeTool(
+    const result = await executeTool(
       updateVariantTool,
       { id: 'var-1', priceCents: 13000, isActive: false },
       context({ userRole: 'admin' }),
     );
 
+    expectValidOutput(updateVariantTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/admin/variants/var-1'));
     expect(calls[0].init.method).toBe('PATCH');
     expect(bodyOf(calls[0].init)).toEqual({
@@ -100,7 +105,27 @@ describe('deleteVariantTool', () => {
     );
 
     expect(result).toEqual({ success: true });
+    expectValidOutput(deleteVariantTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/admin/variants/var-1'));
     expect(calls[0].init.method).toBe('DELETE');
+  });
+});
+
+describe('request context', () => {
+  it('requires an authenticated context for every variant tool', async () => {
+    const { calls } = stubFetch();
+
+    const cases = [
+      [listVariantsTool, { productId: 'prod-1' }],
+      [createVariantTool, { productId: 'prod-1', name: '2L', sku: 'OIL-2L' }],
+      [updateVariantTool, { id: 'var-1' }],
+      [deleteVariantTool, { id: 'var-1' }],
+    ] as const;
+
+    for (const [tool, input] of cases) {
+      await expectRequestContextRequired(tool, input);
+    }
+
+    expect(calls).toHaveLength(0);
   });
 });

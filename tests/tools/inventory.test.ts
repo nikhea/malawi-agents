@@ -13,6 +13,8 @@ import {
   bodyOf,
   context,
   executeTool,
+  expectRequestContextRequired,
+  expectValidOutput,
   jsonResponse,
   stubFetch,
 } from '../helpers';
@@ -34,6 +36,7 @@ describe('getStockTool', () => {
     );
 
     expect(result).toEqual(stock);
+    expectValidOutput(getStockTool.outputSchema, result);
     expect(calls[0].url).toBe(
       apiUrl('/admin/inventory/stock?product_id=prod-1&variant_id=var-1'),
     );
@@ -54,12 +57,13 @@ describe('setStockTool', () => {
   it('sets stock as an admin', async () => {
     const { calls } = stubFetch(() => jsonResponse({ data: stock }));
 
-    await executeTool(
+    const result = await executeTool(
       setStockTool,
       { productId: 'prod-1', qty: 50 },
       admin(),
     );
 
+    expectValidOutput(setStockTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/admin/inventory/stock'));
     expect(calls[0].init.method).toBe('POST');
     expect(bodyOf(calls[0].init)).toEqual({
@@ -86,6 +90,7 @@ describe('reserveStockTool', () => {
     );
 
     expect(result).toEqual({ status: 'reserved' });
+    expectValidOutput(reserveStockTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/admin/inventory/reserve'));
     expect(bodyOf(calls[0].init)).toEqual({
       order_ref: 'order-1',
@@ -101,8 +106,13 @@ describe('releaseStockTool', () => {
       jsonResponse({ data: { status: 'released' } }),
     );
 
-    await executeTool(releaseStockTool, { orderRef: 'order-1' }, admin());
+    const result = await executeTool(
+      releaseStockTool,
+      { orderRef: 'order-1' },
+      admin(),
+    );
 
+    expectValidOutput(releaseStockTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/admin/inventory/release'));
     expect(bodyOf(calls[0].init)).toEqual({ order_ref: 'order-1' });
   });
@@ -114,9 +124,34 @@ describe('confirmStockTool', () => {
       jsonResponse({ data: { status: 'confirmed' } }),
     );
 
-    await executeTool(confirmStockTool, { orderRef: 'order-1' }, admin());
+    const result = await executeTool(
+      confirmStockTool,
+      { orderRef: 'order-1' },
+      admin(),
+    );
 
+    expectValidOutput(confirmStockTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/admin/inventory/confirm'));
     expect(bodyOf(calls[0].init)).toEqual({ order_ref: 'order-1' });
+  });
+});
+
+describe('request context', () => {
+  it('requires an authenticated context for every inventory tool', async () => {
+    const { calls } = stubFetch();
+
+    const cases = [
+      [getStockTool, { productId: 'prod-1' }],
+      [setStockTool, { productId: 'prod-1', qty: 1 }],
+      [reserveStockTool, { orderRef: 'order-1', lines: [{ productId: 'prod-1', qty: 1 }] }],
+      [releaseStockTool, { orderRef: 'order-1' }],
+      [confirmStockTool, { orderRef: 'order-1' }],
+    ] as const;
+
+    for (const [tool, input] of cases) {
+      await expectRequestContextRequired(tool, input);
+    }
+
+    expect(calls).toHaveLength(0);
   });
 });

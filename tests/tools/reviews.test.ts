@@ -13,6 +13,8 @@ import {
   bodyOf,
   context,
   executeTool,
+  expectRequestContextRequired,
+  expectValidOutput,
   jsonResponse,
   stubFetch,
 } from '../helpers';
@@ -32,6 +34,7 @@ describe('getProductReviewsTool', () => {
     );
 
     expect(result).toEqual(reviewSummary);
+    expectValidOutput(getProductReviewsTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/products/prod-1/reviews'));
   });
 });
@@ -47,6 +50,7 @@ describe('createReviewTool', () => {
     );
 
     expect(result).toEqual(review);
+    expectValidOutput(createReviewTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/products/prod-1/reviews'));
     expect(calls[0].init.method).toBe('POST');
     expect(bodyOf(calls[0].init)).toEqual({
@@ -60,12 +64,13 @@ describe('updateReviewTool', () => {
   it('updates a review', async () => {
     const { calls } = stubFetch(() => jsonResponse({ data: review }));
 
-    await executeTool(
+    const result = await executeTool(
       updateReviewTool,
       { reviewId: 'review-1', rating: 4 },
       context(),
     );
 
+    expectValidOutput(updateReviewTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/reviews/review-1'));
     expect(calls[0].init.method).toBe('PATCH');
     expect(bodyOf(calls[0].init)).toEqual({ rating: 4 });
@@ -83,6 +88,7 @@ describe('deleteReviewTool', () => {
     );
 
     expect(result).toEqual({ success: true });
+    expectValidOutput(deleteReviewTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/reviews/review-1'));
     expect(calls[0].init.method).toBe('DELETE');
   });
@@ -99,6 +105,7 @@ describe('deleteAnyReviewTool', () => {
     );
 
     expect(result).toEqual({ success: true });
+    expectValidOutput(deleteAnyReviewTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/admin/reviews/review-1'));
     expect(calls[0].init.method).toBe('DELETE');
   });
@@ -109,6 +116,26 @@ describe('deleteAnyReviewTool', () => {
     await expect(
       executeTool(deleteAnyReviewTool, { reviewId: 'review-1' }, context()),
     ).rejects.toThrow(/admin/i);
+
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe('request context', () => {
+  it('requires an authenticated context for every review tool', async () => {
+    const { calls } = stubFetch();
+
+    const cases = [
+      [getProductReviewsTool, { productId: 'prod-1' }],
+      [createReviewTool, { productId: 'prod-1', rating: 5 }],
+      [updateReviewTool, { reviewId: 'review-1' }],
+      [deleteReviewTool, { reviewId: 'review-1' }],
+      [deleteAnyReviewTool, { reviewId: 'review-1' }],
+    ] as const;
+
+    for (const [tool, input] of cases) {
+      await expectRequestContextRequired(tool, input);
+    }
 
     expect(calls).toHaveLength(0);
   });

@@ -13,6 +13,8 @@ import {
   bodyOf,
   context,
   executeTool,
+  expectRequestContextRequired,
+  expectValidOutput,
   jsonResponse,
   stubFetch,
 } from '../helpers';
@@ -28,6 +30,7 @@ describe('listCategoriesTool', () => {
     const result = await executeTool(listCategoriesTool, {}, context());
 
     expect(result).toEqual([category]);
+    expectValidOutput(listCategoriesTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/categories'));
     expect(calls[0].init.method).toBe('GET');
   });
@@ -40,14 +43,20 @@ describe('getCategoryTool', () => {
     const result = await executeTool(getCategoryTool, { id: 'cat-1' }, context());
 
     expect(result).toEqual(category);
+    expectValidOutput(getCategoryTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/categories/cat-1'));
   });
 
   it('gets a category by slug', async () => {
     const { calls } = stubFetch(() => jsonResponse({ data: category }));
 
-    await executeTool(getCategoryTool, { slug: 'cooking-oil' }, context());
+    const result = await executeTool(
+      getCategoryTool,
+      { slug: 'cooking-oil' },
+      context(),
+    );
 
+    expectValidOutput(getCategoryTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/categories/slug/cooking-oil'));
   });
 });
@@ -63,6 +72,7 @@ describe('createCategoryTool', () => {
     );
 
     expect(result).toEqual(category);
+    expectValidOutput(createCategoryTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/admin/categories'));
     expect(calls[0].init.method).toBe('POST');
     expect(bodyOf(calls[0].init)).toEqual({
@@ -86,12 +96,13 @@ describe('updateCategoryTool', () => {
   it('updates a category as an admin', async () => {
     const { calls } = stubFetch(() => jsonResponse({ data: category }));
 
-    await executeTool(
+    const result = await executeTool(
       updateCategoryTool,
       { id: 'cat-1', name: 'Oils', clearParent: true },
       context({ userRole: 'admin' }),
     );
 
+    expectValidOutput(updateCategoryTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/admin/categories/cat-1'));
     expect(calls[0].init.method).toBe('PATCH');
     expect(bodyOf(calls[0].init)).toEqual({
@@ -112,7 +123,28 @@ describe('deleteCategoryTool', () => {
     );
 
     expect(result).toEqual({ success: true });
+    expectValidOutput(deleteCategoryTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/admin/categories/cat-1'));
     expect(calls[0].init.method).toBe('DELETE');
+  });
+});
+
+describe('request context', () => {
+  it('requires an authenticated context for every category tool', async () => {
+    const { calls } = stubFetch();
+
+    const cases = [
+      [listCategoriesTool, {}],
+      [getCategoryTool, { id: 'cat-1' }],
+      [createCategoryTool, { name: 'Test' }],
+      [updateCategoryTool, { id: 'cat-1' }],
+      [deleteCategoryTool, { id: 'cat-1' }],
+    ] as const;
+
+    for (const [tool, input] of cases) {
+      await expectRequestContextRequired(tool, input);
+    }
+
+    expect(calls).toHaveLength(0);
   });
 });
