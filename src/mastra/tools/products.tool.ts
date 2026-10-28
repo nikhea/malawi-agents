@@ -15,8 +15,14 @@ const requestContextSchema = malawiContextSchema;
 export const listProductsTool = createTool({
   id: 'list-products',
   description:
-    'List products in the Malawi Store catalog. Prices are integer tambala (12500 means K125.00). Use this to browse or search the storefront catalog.',
+    'List or search products in the Malawi Store catalog. Prices are integer tambala (12500 means K125.00). Pass query to search by product text; omit it to browse.',
   inputSchema: z.object({
+    query: z
+      .string()
+      .optional()
+      .describe(
+        'Full-text search over product name, description and slug (word prefixes, e.g. "cook" finds "cooking").',
+      ),
     categoryId: z.string().optional().describe('Filter products by category ID'),
     activeOnly: z
       .boolean()
@@ -41,13 +47,14 @@ export const listProductsTool = createTool({
   outputSchema: z.array(productSchema),
   requestContextSchema,
   execute: async (
-    { categoryId, activeOnly, limit, offset },
+    { query, categoryId, activeOnly, limit, offset },
     { requestContext, observe },
   ) => {
     logToolStart('list-products', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.products.list(
       compactPayload({
+        q: query,
         category_id: categoryId,
         active_only: activeOnly,
         limit,

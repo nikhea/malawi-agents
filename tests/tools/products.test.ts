@@ -42,12 +42,28 @@ describe('listProductsTool', () => {
     expect(calls[0].init.method).toBe('GET');
   });
 
+  it('searches by text with the query parameter', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: [product] }));
+
+    const result = await executeTool(
+      listProductsTool,
+      { query: 'dress', activeOnly: true, limit: 5 },
+      context(),
+    );
+
+    expect(result).toEqual([product]);
+    expectValidOutput(listProductsTool.outputSchema, result);
+    expect(calls[0].url).toBe(
+      apiUrl('/products?q=dress&active_only=true&limit=5'),
+    );
+  });
+
   it('omits blank optional filters from the request', async () => {
     const { calls } = stubFetch(() => jsonResponse({ data: [] }));
 
     const result = await executeTool(
       listProductsTool,
-      { categoryId: '', activeOnly: true },
+      { query: '', categoryId: '', activeOnly: true },
       context(),
     );
 
