@@ -41,6 +41,20 @@ describe('listProductsTool', () => {
     );
     expect(calls[0].init.method).toBe('GET');
   });
+
+  it('omits blank optional filters from the request', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: [] }));
+
+    const result = await executeTool(
+      listProductsTool,
+      { categoryId: '', activeOnly: true },
+      context(),
+    );
+
+    expect(result).toEqual([]);
+    expectValidOutput(listProductsTool.outputSchema, result);
+    expect(calls[0].url).toBe(apiUrl('/products?active_only=true'));
+  });
 });
 
 describe('getProductTool', () => {
@@ -93,6 +107,25 @@ describe('createProductTool', () => {
       category_id: product.category_id,
       price_cents: product.price_cents,
     });
+  });
+
+  it('omits blank optional fields from the request body', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: product }));
+
+    const result = await executeTool(
+      createProductTool,
+      {
+        name: 'Test product',
+        categoryId: '',
+        slug: '   ',
+        description: '',
+        imageUrl: '',
+      },
+      context({ userRole: 'admin' }),
+    );
+
+    expectValidOutput(createProductTool.outputSchema, result);
+    expect(bodyOf(calls[0].init)).toEqual({ name: 'Test product' });
   });
 
   it('rejects a customer before calling the API', async () => {

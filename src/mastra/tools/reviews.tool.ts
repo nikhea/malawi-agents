@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
+import { compactPayload } from '../lib/malawi-input';
 import { createMalawiStore } from '../lib/malawi-store';
 import {
   reviewSchema,
@@ -41,6 +42,7 @@ export const createReviewTool = createTool({
   id: 'create-review',
   description:
     'Write a review for a product as the authenticated customer. Each customer may have one review per product.',
+  requireApproval: true,
   inputSchema: z.object({
     productId: z.string().describe('Product ID to review'),
     rating: z
@@ -56,11 +58,14 @@ export const createReviewTool = createTool({
   requestContextSchema,
   execute: async (input, { requestContext }) => {
     const store = createMalawiStore(requestContext);
-    return store.reviews.create(input.productId, {
-      rating: input.rating,
-      title: input.title,
-      body: input.body,
-    });
+    return store.reviews.create(
+      input.productId,
+      compactPayload({
+        rating: input.rating,
+        title: input.title,
+        body: input.body,
+      }),
+    );
   },
 });
 
@@ -68,6 +73,7 @@ export const updateReviewTool = createTool({
   id: 'update-review',
   description:
     'Edit the authenticated customer\'s own review. Use get-product-reviews or the raw review ID to find it.',
+  requireApproval: true,
   inputSchema: z.object({
     reviewId: z.string().describe('Review ID'),
     ...reviewFields,
@@ -76,17 +82,21 @@ export const updateReviewTool = createTool({
   requestContextSchema,
   execute: async (input, { requestContext }) => {
     const store = createMalawiStore(requestContext);
-    return store.reviews.update(input.reviewId, {
-      rating: input.rating,
-      title: input.title,
-      body: input.body,
-    });
+    return store.reviews.update(
+      input.reviewId,
+      compactPayload({
+        rating: input.rating,
+        title: input.title,
+        body: input.body,
+      }),
+    );
   },
 });
 
 export const deleteReviewTool = createTool({
   id: 'delete-review',
   description: 'Delete the authenticated customer\'s own review.',
+  requireApproval: true,
   inputSchema: z.object({
     reviewId: z.string().describe('Review ID'),
   }),
@@ -103,6 +113,7 @@ export const deleteAnyReviewTool = createTool({
   id: 'delete-any-review',
   description:
     'Moderate reviews by deleting any review. Admin only. Use only for moderation requests.',
+  requireApproval: true,
   inputSchema: z.object({
     reviewId: z.string().describe('Review ID'),
   }),

@@ -10,6 +10,7 @@ export const createPaymentIntentTool = createTool({
   id: 'create-payment-intent',
   description:
     'Create or reuse a Stripe payment intent for one of the authenticated customer\'s orders. The client secret is redacted from the model output; send the raw result to your storefront so Stripe.js can confirm the card.',
+  requireApproval: true,
   inputSchema: z.object({
     orderId: z.string().describe('Order ID to pay for'),
   }),

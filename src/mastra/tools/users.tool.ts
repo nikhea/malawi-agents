@@ -38,6 +38,7 @@ export const setUserRoleTool = createTool({
   id: 'set-user-role',
   description:
     'Change a user\'s role to admin or customer. Admin only. Use only when an administrator explicitly requests a role change.',
+  requireApproval: true,
   inputSchema: z.object({
     id: z.string().describe('User ID'),
     role: z.enum(['admin', 'customer']).describe('New role'),

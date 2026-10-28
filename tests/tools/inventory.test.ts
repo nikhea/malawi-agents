@@ -98,6 +98,26 @@ describe('reserveStockTool', () => {
       ttl_seconds: 600,
     });
   });
+
+  it('omits blank optional fields from nested stock lines', async () => {
+    const { calls } = stubFetch(() =>
+      jsonResponse({ data: { status: 'reserved' } }),
+    );
+
+    await executeTool(
+      reserveStockTool,
+      {
+        orderRef: 'order-1',
+        lines: [{ productId: 'prod-1', variantId: '', qty: 1 }],
+      },
+      admin(),
+    );
+
+    expect(bodyOf(calls[0].init)).toEqual({
+      order_ref: 'order-1',
+      lines: [{ product_id: 'prod-1', qty: 1 }],
+    });
+  });
 });
 
 describe('releaseStockTool', () => {

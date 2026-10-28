@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
+import { compactPayload } from '../lib/malawi-input';
 import { createMalawiStore } from '../lib/malawi-store';
 import {
   productDetailSchema,
@@ -43,12 +44,14 @@ export const listProductsTool = createTool({
     { requestContext },
   ) => {
     const store = createMalawiStore(requestContext);
-    return store.products.list({
-      category_id: categoryId,
-      active_only: activeOnly,
-      limit,
-      offset,
-    });
+    return store.products.list(
+      compactPayload({
+        category_id: categoryId,
+        active_only: activeOnly,
+        limit,
+        offset,
+      }),
+    );
   },
 });
 
@@ -77,6 +80,7 @@ export const createProductTool = createTool({
   id: 'create-product',
   description:
     'Create a product in the Malawi Store catalog. Admin only. Prices are integer tambala. Use this only when an administrator explicitly asks to add a product.',
+  requireApproval: true,
   inputSchema: z.object({
     name: z.string().min(1).describe('Product name'),
     categoryId: z.string().optional().describe('Category ID to file the product under'),
@@ -99,15 +103,17 @@ export const createProductTool = createTool({
   execute: async (input, { requestContext }) => {
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
-    return store.products.create({
-      name: input.name,
-      category_id: input.categoryId,
-      slug: input.slug,
-      description: input.description,
-      price_cents: input.priceCents,
-      currency: input.currency,
-      image_url: input.imageUrl,
-    });
+    return store.products.create(
+      compactPayload({
+        name: input.name,
+        category_id: input.categoryId,
+        slug: input.slug,
+        description: input.description,
+        price_cents: input.priceCents,
+        currency: input.currency,
+        image_url: input.imageUrl,
+      }),
+    );
   },
 });
 
@@ -115,6 +121,7 @@ export const updateProductTool = createTool({
   id: 'update-product',
   description:
     'Update an existing product. Admin only. Slugs cannot be changed; use isActive false to deactivate a product instead of deleting it.',
+  requireApproval: true,
   inputSchema: z.object({
     id: z.string().describe('Product ID'),
     categoryId: z.string().optional().describe('New category ID'),
@@ -138,15 +145,18 @@ export const updateProductTool = createTool({
   execute: async (input, { requestContext }) => {
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
-    return store.products.update(input.id, {
-      category_id: input.categoryId,
-      name: input.name,
-      description: input.description,
-      price_cents: input.priceCents,
-      currency: input.currency,
-      is_active: input.isActive,
-      clear_category: input.clearCategory,
-    });
+    return store.products.update(
+      input.id,
+      compactPayload({
+        category_id: input.categoryId,
+        name: input.name,
+        description: input.description,
+        price_cents: input.priceCents,
+        currency: input.currency,
+        is_active: input.isActive,
+        clear_category: input.clearCategory,
+      }),
+    );
   },
 });
 
@@ -154,6 +164,7 @@ export const deleteProductTool = createTool({
   id: 'delete-product',
   description:
     'Permanently delete a product and its variants. Admin only. Prefer deactivating a product with update-product unless permanent deletion is explicitly requested.',
+  requireApproval: true,
   inputSchema: z.object({
     id: z.string().describe('Product ID'),
   }),

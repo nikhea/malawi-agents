@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
+import { compactPayload } from '../lib/malawi-input';
 import { createMalawiStore } from '../lib/malawi-store';
 import { categorySchema, successSchema } from '../lib/malawi-schemas';
 
@@ -44,6 +45,7 @@ export const createCategoryTool = createTool({
   id: 'create-category',
   description:
     'Create a product category. Admin only. Use this only when an administrator explicitly asks to add a category.',
+  requireApproval: true,
   inputSchema: z.object({
     name: z.string().min(1).describe('Category name'),
     slug: z
@@ -62,13 +64,15 @@ export const createCategoryTool = createTool({
   execute: async (input, { requestContext }) => {
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
-    return store.categories.create({
-      name: input.name,
-      slug: input.slug,
-      description: input.description,
-      parent_id: input.parentId,
-      image_url: input.imageUrl,
-    });
+    return store.categories.create(
+      compactPayload({
+        name: input.name,
+        slug: input.slug,
+        description: input.description,
+        parent_id: input.parentId,
+        image_url: input.imageUrl,
+      }),
+    );
   },
 });
 
@@ -76,6 +80,7 @@ export const updateCategoryTool = createTool({
   id: 'update-category',
   description:
     'Update a product category. Admin only. Slugs cannot be changed. Set clearParent true to move the category back to the root.',
+  requireApproval: true,
   inputSchema: z.object({
     id: z.string().describe('Category ID'),
     name: z.string().optional().describe('New category name'),
@@ -91,12 +96,15 @@ export const updateCategoryTool = createTool({
   execute: async (input, { requestContext }) => {
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
-    return store.categories.update(input.id, {
-      name: input.name,
-      description: input.description,
-      parent_id: input.parentId,
-      clear_parent: input.clearParent,
-    });
+    return store.categories.update(
+      input.id,
+      compactPayload({
+        name: input.name,
+        description: input.description,
+        parent_id: input.parentId,
+        clear_parent: input.clearParent,
+      }),
+    );
   },
 });
 
@@ -104,6 +112,7 @@ export const deleteCategoryTool = createTool({
   id: 'delete-category',
   description:
     'Delete a product category. Admin only. Child categories become root categories; they are not deleted.',
+  requireApproval: true,
   inputSchema: z.object({
     id: z.string().describe('Category ID'),
   }),

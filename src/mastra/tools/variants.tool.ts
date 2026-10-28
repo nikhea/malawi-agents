@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
+import { compactPayload } from '../lib/malawi-input';
 import { createMalawiStore } from '../lib/malawi-store';
 import { successSchema, variantSchema } from '../lib/malawi-schemas';
 
@@ -25,6 +26,7 @@ export const createVariantTool = createTool({
   id: 'create-variant',
   description:
     'Create a sellable SKU variant for a product. Admin only. Prices are integer tambala.',
+  requireApproval: true,
   inputSchema: z.object({
     productId: z.string().describe('Product ID the variant belongs to'),
     name: z.string().min(1).describe('Variant name, for example 500ml'),
@@ -41,11 +43,14 @@ export const createVariantTool = createTool({
   execute: async (input, { requestContext }) => {
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
-    return store.variants.create(input.productId, {
-      name: input.name,
-      sku: input.sku,
-      price_cents: input.priceCents,
-    });
+    return store.variants.create(
+      input.productId,
+      compactPayload({
+        name: input.name,
+        sku: input.sku,
+        price_cents: input.priceCents,
+      }),
+    );
   },
 });
 
@@ -53,6 +58,7 @@ export const updateVariantTool = createTool({
   id: 'update-variant',
   description:
     'Update a variant. Admin only. A variant product ID and SKU cannot be changed.',
+  requireApproval: true,
   inputSchema: z.object({
     id: z.string().describe('Variant ID'),
     name: z.string().optional().describe('New variant name'),
@@ -69,17 +75,21 @@ export const updateVariantTool = createTool({
   execute: async (input, { requestContext }) => {
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
-    return store.variants.update(input.id, {
-      name: input.name,
-      price_cents: input.priceCents,
-      is_active: input.isActive,
-    });
+    return store.variants.update(
+      input.id,
+      compactPayload({
+        name: input.name,
+        price_cents: input.priceCents,
+        is_active: input.isActive,
+      }),
+    );
   },
 });
 
 export const deleteVariantTool = createTool({
   id: 'delete-variant',
   description: 'Delete a variant. Admin only.',
+  requireApproval: true,
   inputSchema: z.object({
     id: z.string().describe('Variant ID'),
   }),

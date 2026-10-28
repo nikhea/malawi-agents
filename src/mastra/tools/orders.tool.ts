@@ -10,6 +10,7 @@ export const checkoutOrderTool = createTool({
   id: 'checkout-order',
   description:
     'Place an order from the authenticated customer\'s current cart. This freezes the cart, reserves stock, clears the cart, and returns a pending order. Confirm with the customer before calling this tool.',
+  requireApproval: true,
   inputSchema: z.object({}),
   outputSchema: orderSchema,
   requestContextSchema,
@@ -51,6 +52,7 @@ export const cancelOrderTool = createTool({
   id: 'cancel-order',
   description:
     'Cancel a pending order for the authenticated customer and release its stock hold. Paid or already cancelled orders cannot be cancelled.',
+  requireApproval: true,
   inputSchema: z.object({
     id: z.string().describe('Order ID'),
   }),

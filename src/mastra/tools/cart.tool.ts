@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema } from '../lib/malawi-context';
+import { compactPayload } from '../lib/malawi-input';
 import { createMalawiStore } from '../lib/malawi-store';
 import { cartSchema, successSchema } from '../lib/malawi-schemas';
 
@@ -23,6 +24,7 @@ export const addCartItemTool = createTool({
   id: 'add-cart-item',
   description:
     'Add a product or product variant to the authenticated customer\'s cart. Use get-product or list-variants first to find IDs.',
+  requireApproval: true,
   inputSchema: z.object({
     productId: z.string().describe('Product ID to add'),
     variantId: z
@@ -39,11 +41,13 @@ export const addCartItemTool = createTool({
   requestContextSchema,
   execute: async ({ productId, variantId, qty }, { requestContext }) => {
     const store = createMalawiStore(requestContext);
-    return store.cart.addItem({
-      product_id: productId,
-      variant_id: variantId,
-      qty,
-    });
+    return store.cart.addItem(
+      compactPayload({
+        product_id: productId,
+        variant_id: variantId,
+        qty,
+      }),
+    );
   },
 });
 
@@ -51,6 +55,7 @@ export const setCartItemQtyTool = createTool({
   id: 'set-cart-item-qty',
   description:
     'Set the quantity of a cart line. The cart line ID comes from get-cart, not the product ID. A quantity of 0 removes the line.',
+  requireApproval: true,
   inputSchema: z.object({
     itemId: z.string().describe('Cart line ID from get-cart'),
     qty: z
@@ -71,6 +76,7 @@ export const removeCartItemTool = createTool({
   id: 'remove-cart-item',
   description:
     'Remove one line from the authenticated customer\'s cart. Use the cart line ID from get-cart.',
+  requireApproval: true,
   inputSchema: z.object({
     itemId: z.string().describe('Cart line ID from get-cart'),
   }),
@@ -86,6 +92,7 @@ export const clearCartTool = createTool({
   id: 'clear-cart',
   description:
     'Remove every line from the authenticated customer\'s cart. A successful checkout already clears the cart.',
+  requireApproval: true,
   inputSchema: z.object({}),
   outputSchema: successSchema,
   requestContextSchema,

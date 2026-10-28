@@ -33,6 +33,8 @@ The project exposes 40 tools built on [`@nikhea/store-sdk`](https://www.npmjs.co
 
 Prices are integer tambala: `12500` means K125.00.
 
+Mutating tools set `requireApproval: true`, so an agent pauses for explicit approval before any create, update, delete, checkout, payment, wishlist, review, role, or inventory change. Optional API inputs are passed through `compactPayload`, which drops empty strings instead of forwarding blank query params or body fields.
+
 ## Authentication
 
 `malawiAuthMiddleware` protects the agent and workflow API routes:

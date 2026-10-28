@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
+import { compactPayload } from '../lib/malawi-input';
 import { createMalawiStore } from '../lib/malawi-store';
 import { statusResponseSchema, stockSchema } from '../lib/malawi-schemas';
 
@@ -25,10 +26,12 @@ export const getStockTool = createTool({
   execute: async ({ productId, variantId }, { requestContext }) => {
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
-    return store.inventory.getStock({
-      product_id: productId,
-      variant_id: variantId,
-    });
+    return store.inventory.getStock(
+      compactPayload({
+        product_id: productId,
+        variant_id: variantId,
+      }),
+    );
   },
 });
 
@@ -36,6 +39,7 @@ export const setStockTool = createTool({
   id: 'set-stock',
   description:
     'Set the on-hand stock quantity for a product or variant (restocking). Admin only.',
+  requireApproval: true,
   inputSchema: z.object({
     productId: z.string().describe('Product ID'),
     variantId: z.string().optional().describe('Variant ID for a specific SKU'),
@@ -46,11 +50,13 @@ export const setStockTool = createTool({
   execute: async ({ productId, variantId, qty }, { requestContext }) => {
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
-    return store.inventory.setStock({
-      product_id: productId,
-      variant_id: variantId,
-      qty,
-    });
+    return store.inventory.setStock(
+      compactPayload({
+        product_id: productId,
+        variant_id: variantId,
+        qty,
+      }),
+    );
   },
 });
 
@@ -58,6 +64,7 @@ export const reserveStockTool = createTool({
   id: 'reserve-stock',
   description:
     'Atomically hold stock for an order reference. Admin only. One short line fails the whole reservation.',
+  requireApproval: true,
   inputSchema: z.object({
     orderRef: z.string().describe('Order reference to reserve stock for'),
     lines: z.array(stockLineSchema).min(1).describe('Stock lines to hold'),
@@ -73,15 +80,17 @@ export const reserveStockTool = createTool({
   execute: async ({ orderRef, lines, ttlSeconds }, { requestContext }) => {
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
-    return store.inventory.reserve({
-      order_ref: orderRef,
-      lines: lines.map((line) => ({
-        product_id: line.productId,
-        variant_id: line.variantId,
-        qty: line.qty,
-      })),
-      ttl_seconds: ttlSeconds,
-    });
+    return store.inventory.reserve(
+      compactPayload({
+        order_ref: orderRef,
+        lines: lines.map((line) => ({
+          product_id: line.productId,
+          variant_id: line.variantId,
+          qty: line.qty,
+        })),
+        ttl_seconds: ttlSeconds,
+      }),
+    );
   },
 });
 
@@ -89,6 +98,7 @@ export const releaseStockTool = createTool({
   id: 'release-stock',
   description:
     'Release a stock hold for an order reference. Admin only. This operation is idempotent.',
+  requireApproval: true,
   inputSchema: z.object({
     orderRef: z.string().describe('Order reference whose hold should be released'),
   }),
@@ -105,6 +115,7 @@ export const confirmStockTool = createTool({
   id: 'confirm-stock',
   description:
     'Convert a stock hold into sales for an order reference. Admin only. This operation is idempotent.',
+  requireApproval: true,
   inputSchema: z.object({
     orderRef: z.string().describe('Order reference whose hold should be confirmed'),
   }),

@@ -26,6 +26,7 @@ export const addToWishlistTool = createTool({
   id: 'add-to-wishlist',
   description:
     'Add a product to the authenticated customer\'s wishlist. This is idempotent: adding the same product again succeeds.',
+  requireApproval: true,
   inputSchema: z.object({
     productId: z.string().describe('Product ID to save'),
   }),
@@ -41,6 +42,7 @@ export const removeFromWishlistTool = createTool({
   id: 'remove-from-wishlist',
   description:
     'Remove a product from the authenticated customer\'s wishlist. Pass the product ID, not the wishlist row ID.',
+  requireApproval: true,
   inputSchema: z.object({
     productId: z.string().describe('Product ID to remove'),
   }),
