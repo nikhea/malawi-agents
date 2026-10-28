@@ -1,0 +1,44 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createPaymentIntentTool } from '../../src/mastra/tools/payments.tool';
+import { payment } from '../fixtures';
+import {
+  TEST_BASE_URL,
+  apiUrl,
+  authorizationOf,
+  bodyOf,
+  context,
+  executeTool,
+  jsonResponse,
+  stubFetch,
+} from '../helpers';
+
+beforeEach(() => {
+  vi.stubEnv('MALAWI_API_BASE_URL', TEST_BASE_URL);
+});
+
+describe('createPaymentIntentTool', () => {
+  it('creates a payment intent for an order', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: payment }));
+
+    const result = await executeTool(
+      createPaymentIntentTool,
+      { orderId: 'order-1' },
+      context(),
+    );
+
+    expect(result).toEqual(payment);
+    expect(calls[0].url).toBe(apiUrl('/payments/intents'));
+    expect(calls[0].init.method).toBe('POST');
+    expect(bodyOf(calls[0].init)).toEqual({ order_id: 'order-1' });
+    expect(authorizationOf(calls[0].init)).toBe('Bearer access-token');
+  });
+
+  it('redacts the Stripe client secret from model output', () => {
+    const output = createPaymentIntentTool.toModelOutput?.(payment);
+
+    expect(output).toMatchObject({
+      id: 'pay-1',
+      client_secret: '[redacted]',
+    });
+  });
+});
