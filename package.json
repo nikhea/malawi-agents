@@ -20,13 +20,22 @@
     "start": "mastra start"
   },
   "dependencies": {
+    "@mastra/ai-sdk": "^1.11.2",
     "@mastra/core": "^1.79.0",
     "@mastra/duckdb": "^1.15.0",
+    "@mastra/editor": "^0.16.4",
     "@mastra/evals": "^1.10.8",
     "@mastra/libsql": "^1.27.0",
     "@mastra/loggers": "^1.3.9",
+    "@mastra/mcp": "^2.5.0",
     "@mastra/memory": "^1.39.0",
     "@mastra/observability": "^1.21.0",
+    "@mastra/pg": "^1.32.0",
+    "@mastra/rag": "^2.7.0",
+    "@mastra/redis": "^1.4.11",
+    "@mastra/redis-streams": "^0.6.4",
+    "@nikhea/store-sdk": "^0.1.0",
+    "ai": "^7.0.155",
     "zod": "^4"
   }
 }
