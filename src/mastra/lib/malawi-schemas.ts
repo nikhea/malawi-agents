@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 const optionalString = z.string().nullish();
 
-export const productSchema = z.looseObject({
+export const productSchema = z.object({
   id: z.string(),
   category_id: optionalString,
   category_name: optionalString,
@@ -24,7 +24,7 @@ export const productSchema = z.looseObject({
   created_at: z.string(),
 });
 
-export const productVariantViewSchema = z.looseObject({
+export const productVariantViewSchema = z.object({
   id: z.string(),
   name: z.string(),
   sku: z.string(),
@@ -32,12 +32,12 @@ export const productVariantViewSchema = z.looseObject({
   is_active: z.boolean(),
 });
 
-export const productDetailSchema = z.looseObject({
+export const productDetailSchema = z.object({
   product: productSchema,
   variants: z.array(productVariantViewSchema),
 });
 
-export const categorySchema = z.looseObject({
+export const categorySchema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
@@ -47,7 +47,7 @@ export const categorySchema = z.looseObject({
   created_at: z.string(),
 });
 
-export const variantSchema = z.looseObject({
+export const variantSchema = z.object({
   id: z.string(),
   product_id: z.string(),
   name: z.string(),
@@ -57,7 +57,7 @@ export const variantSchema = z.looseObject({
   created_at: z.string(),
 });
 
-export const cartLineSchema = z.looseObject({
+export const cartLineSchema = z.object({
   id: z.string(),
   product_id: z.string(),
   variant_id: optionalString,
@@ -69,7 +69,7 @@ export const cartLineSchema = z.looseObject({
   line_total_cents: z.number().int(),
 });
 
-export const cartSchema = z.looseObject({
+export const cartSchema = z.object({
   id: z.string(),
   user_id: z.string(),
   items: z.array(cartLineSchema),
@@ -78,7 +78,7 @@ export const cartSchema = z.looseObject({
   updated_at: z.string(),
 });
 
-export const orderLineSchema = z.looseObject({
+export const orderLineSchema = z.object({
   product_id: z.string(),
   variant_id: optionalString,
   name: z.string(),
@@ -88,7 +88,7 @@ export const orderLineSchema = z.looseObject({
   line_total_cents: z.number().int(),
 });
 
-export const orderSchema = z.looseObject({
+export const orderSchema = z.object({
   id: z.string(),
   user_id: z.string(),
   status: z.enum(['pending', 'paid', 'cancelled']),
@@ -98,7 +98,7 @@ export const orderSchema = z.looseObject({
   created_at: z.string(),
 });
 
-export const paymentSchema = z.looseObject({
+export const paymentSchema = z.object({
   id: z.string(),
   order_id: z.string(),
   stripe_intent_id: z.string(),
@@ -110,7 +110,7 @@ export const paymentSchema = z.looseObject({
   created_at: z.string(),
 });
 
-export const wishlistProductSchema = z.looseObject({
+export const wishlistProductSchema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
@@ -119,13 +119,13 @@ export const wishlistProductSchema = z.looseObject({
   image_url: optionalString,
 });
 
-export const wishlistItemSchema = z.looseObject({
+export const wishlistItemSchema = z.object({
   product_id: z.string(),
   product: wishlistProductSchema,
   added_at: z.string(),
 });
 
-export const reviewSchema = z.looseObject({
+export const reviewSchema = z.object({
   id: z.string(),
   user_id: z.string(),
   author: z.string(),
@@ -136,13 +136,13 @@ export const reviewSchema = z.looseObject({
   created_at: z.string(),
 });
 
-export const reviewSummarySchema = z.looseObject({
+export const reviewSummarySchema = z.object({
   average: z.number(),
   count: z.number().int(),
   reviews: z.array(reviewSchema),
 });
 
-export const userSchema = z.looseObject({
+export const userSchema = z.object({
   id: z.string(),
   email: z.string(),
   name: z.string(),
@@ -151,7 +151,7 @@ export const userSchema = z.looseObject({
   created_at: z.string(),
 });
 
-export const stockSchema = z.looseObject({
+export const stockSchema = z.object({
   product_id: z.string(),
   variant_id: optionalString,
   on_hand: z.number().int(),
@@ -159,7 +159,7 @@ export const stockSchema = z.looseObject({
   available: z.number().int(),
 });
 
-export const statusResponseSchema = z.looseObject({
+export const statusResponseSchema = z.object({
   status: z.string(),
 });
 

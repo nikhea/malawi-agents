@@ -97,7 +97,7 @@ export function adminContext(
 }
 
 type ExecutableTool = {
-  execute?: (input: unknown, executionContext: unknown) => unknown;
+  execute?: (...args: any[]) => unknown;
 };
 
 export async function executeTool(
@@ -123,6 +123,6 @@ export function bodyOf(init: RequestInit): unknown {
   return typeof init.body === 'string' ? JSON.parse(init.body) : undefined;
 }
 
-export function urlOf(url: string, path: string): string {
+export function apiUrl(path: string): string {
   return `${TEST_BASE_URL}${path}`;
 }
