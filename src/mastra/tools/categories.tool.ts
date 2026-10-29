@@ -1,7 +1,12 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
-import { blankToUndefined, compactPayload } from '../lib/malawi-input';
+import {
+  blankToUndefined,
+  cleanInputObject,
+  cleanInputSchema,
+  compactPayload,
+} from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { categorySchema, successSchema } from '../lib/malawi-schemas';
@@ -12,7 +17,7 @@ export const listCategoriesTool = createTool({
   id: 'list-categories',
   description:
     'List or filter product categories in the Malawi Store. Filter by search query, parent category, root-only flag, product presence, sort order, and pagination.',
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     query: z
       .preprocess(blankToUndefined, z.string().optional())
       .describe('Filter categories by name, description, or slug substring'),
@@ -87,14 +92,14 @@ export const getCategoryTool = createTool({
   id: 'get-category',
   description:
     'Get one product category by its ID or slug. Use list-categories first when you only know the category name.',
-  inputSchema: z.union([
+  inputSchema: cleanInputSchema(z.union([
     z.object({
       id: z.string().describe('Category ID'),
     }),
     z.object({
       slug: z.string().describe('Category slug, for example cooking-oil'),
     }),
-  ]),
+  ])),
   outputSchema: categorySchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
@@ -110,7 +115,7 @@ export const createCategoryTool = createTool({
   description:
     'Create a product category. Admin only. Use this only when an administrator explicitly asks to add a category.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     name: z.string().min(1).describe('Category name'),
     slug: z.preprocess(blankToUndefined, z.string().optional())
       .describe('URL slug. Generated from the name when omitted.'),
@@ -142,7 +147,7 @@ export const updateCategoryTool = createTool({
   description:
     'Update a product category. Admin only. Slugs cannot be changed. Set clearParent true to move the category back to the root.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     id: z.string().describe('Category ID'),
     name: z.preprocess(blankToUndefined, z.string().optional()).describe('New category name'),
     description: z.preprocess(blankToUndefined, z.string().optional()).describe('New description'),
@@ -175,7 +180,7 @@ export const deleteCategoryTool = createTool({
   description:
     'Delete a product category. Admin only. Child categories become root categories; they are not deleted.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     id: z.string().describe('Category ID'),
   }),
   outputSchema: successSchema,

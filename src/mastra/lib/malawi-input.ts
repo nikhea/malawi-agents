@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 function isBlank(value: unknown): boolean {
   return (
     value === undefined ||
@@ -37,4 +39,13 @@ export function compactPayload<T>(value: T): T {
   }
 
   return value;
+}
+
+/** Normalize model-generated arguments before tool-schema validation. */
+export function cleanInputObject<T extends z.ZodRawShape>(shape: T) {
+  return z.preprocess(compactPayload, z.object(shape));
+}
+
+export function cleanInputSchema<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess(compactPayload, schema);
 }

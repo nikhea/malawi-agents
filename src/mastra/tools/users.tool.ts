@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
+import { cleanInputObject } from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { userSchema } from '../lib/malawi-schemas';
@@ -11,7 +12,7 @@ export const getMeTool = createTool({
   id: 'get-me',
   description:
     'Get the authenticated customer\'s own account details, including name, email, role, and email verification status.',
-  inputSchema: z.object({}),
+  inputSchema: cleanInputObject({}),
   outputSchema: userSchema,
   requestContextSchema,
   execute: async (_input, { requestContext, observe }) => {
@@ -25,7 +26,7 @@ export const getUserTool = createTool({
   id: 'get-user',
   description:
     'Get a Malawi Store user by ID. Requires an authenticated session with permission to read that account.',
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     id: z.string().describe('User ID'),
   }),
   outputSchema: userSchema,
@@ -42,7 +43,7 @@ export const setUserRoleTool = createTool({
   description:
     'Change a user\'s role to admin or customer. Admin only. Use only when an administrator explicitly requests a role change.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     id: z.string().describe('User ID'),
     role: z.enum(['admin', 'customer']).describe('New role'),
   }),

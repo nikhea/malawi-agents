@@ -1,7 +1,11 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
-import { blankToUndefined, compactPayload } from '../lib/malawi-input';
+import {
+  blankToUndefined,
+  cleanInputObject,
+  compactPayload,
+} from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import {
@@ -28,7 +32,7 @@ export const getProductReviewsTool = createTool({
   id: 'get-product-reviews',
   description:
     'Get the public review summary for a product: average rating, review count, and reviews. Filter reviews by text search, rating, sort order, and pagination.',
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     productId: z.string().describe('Product ID'),
     query: z
       .preprocess(blankToUndefined, z.string().optional())
@@ -91,7 +95,7 @@ export const createReviewTool = createTool({
   description:
     'Write a review for a product as the authenticated customer. Each customer may have one review per product.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     productId: z.string().describe('Product ID to review'),
     rating: z
       .number()
@@ -123,7 +127,7 @@ export const updateReviewTool = createTool({
   description:
     'Edit the authenticated customer\'s own review. Use get-product-reviews or the raw review ID to find it.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     reviewId: z.string().describe('Review ID'),
     ...reviewFields,
   }),
@@ -147,7 +151,7 @@ export const deleteReviewTool = createTool({
   id: 'delete-review',
   description: 'Delete the authenticated customer\'s own review.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     reviewId: z.string().describe('Review ID'),
   }),
   outputSchema: successSchema,
@@ -165,7 +169,7 @@ export const deleteAnyReviewTool = createTool({
   description:
     'Moderate reviews by deleting any review. Admin only. Use only for moderation requests.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     reviewId: z.string().describe('Review ID'),
   }),
   outputSchema: successSchema,

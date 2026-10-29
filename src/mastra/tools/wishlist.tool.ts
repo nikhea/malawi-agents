@@ -1,7 +1,11 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema } from '../lib/malawi-context';
-import { blankToUndefined, compactPayload } from '../lib/malawi-input';
+import {
+  blankToUndefined,
+  cleanInputObject,
+  compactPayload,
+} from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import {
@@ -15,7 +19,7 @@ export const listWishlistTool = createTool({
   id: 'list-wishlist',
   description:
     "List or filter the authenticated customer's wishlist items. Filter by search query, category, sort order, and pagination. Each item includes a product snapshot and its current price in integer tambala.",
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     query: z
       .preprocess(blankToUndefined, z.string().optional())
       .describe('Filter saved items by product name or slug substring'),
@@ -79,7 +83,7 @@ export const addToWishlistTool = createTool({
   description:
     'Add a product to the authenticated customer\'s wishlist. This is idempotent: adding the same product again succeeds.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     productId: z.string().describe('Product ID to save'),
   }),
   outputSchema: wishlistItemSchema,
@@ -96,7 +100,7 @@ export const removeFromWishlistTool = createTool({
   description:
     'Remove a product from the authenticated customer\'s wishlist. Pass the product ID, not the wishlist row ID.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     productId: z.string().describe('Product ID to remove'),
   }),
   outputSchema: statusResponseSchema,

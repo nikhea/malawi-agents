@@ -1,7 +1,11 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema } from '../lib/malawi-context';
-import { blankToUndefined, compactPayload } from '../lib/malawi-input';
+import {
+  blankToUndefined,
+  cleanInputObject,
+  compactPayload,
+} from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { orderSchema } from '../lib/malawi-schemas';
@@ -13,7 +17,7 @@ export const checkoutOrderTool = createTool({
   description:
     'Place an order from the authenticated customer\'s current cart. This freezes the cart, reserves stock, clears the cart, and returns a pending order. Confirm with the customer before calling this tool.',
   requireApproval: true,
-  inputSchema: z.object({}),
+  inputSchema: cleanInputObject({}),
   outputSchema: orderSchema,
   requestContextSchema,
   execute: async (_input, { requestContext, observe }) => {
@@ -27,7 +31,7 @@ export const listOrdersTool = createTool({
   id: 'list-orders',
   description:
     "List or filter the authenticated customer's orders. Filter by status, currency, date range, total bounds, sort order, and pagination. Use get-order for full line details.",
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     status: z
       .enum(['pending', 'paid', 'cancelled'])
       .optional()
@@ -117,7 +121,7 @@ export const getOrderTool = createTool({
   id: 'get-order',
   description:
     'Get one of the authenticated customer\'s orders by ID, including its frozen line items and status.',
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     id: z.string().describe('Order ID'),
   }),
   outputSchema: orderSchema,
@@ -134,7 +138,7 @@ export const cancelOrderTool = createTool({
   description:
     'Cancel a pending order for the authenticated customer and release its stock hold. Paid or already cancelled orders cannot be cancelled.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     id: z.string().describe('Order ID'),
   }),
   outputSchema: orderSchema,

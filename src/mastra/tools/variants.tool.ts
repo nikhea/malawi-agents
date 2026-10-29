@@ -1,7 +1,11 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
-import { blankToUndefined, compactPayload } from '../lib/malawi-input';
+import {
+  blankToUndefined,
+  cleanInputObject,
+  compactPayload,
+} from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { successSchema, variantSchema } from '../lib/malawi-schemas';
@@ -12,7 +16,7 @@ export const listVariantsTool = createTool({
   id: 'list-variants',
   description:
     'List the sellable SKU variants for a product. Prices are integer tambala.',
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     productId: z.string().describe('Product ID whose variants should be listed'),
   }),
   outputSchema: z.array(variantSchema),
@@ -29,7 +33,7 @@ export const createVariantTool = createTool({
   description:
     'Create a sellable SKU variant for a product. Admin only. Prices are integer tambala.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     productId: z.string().describe('Product ID the variant belongs to'),
     name: z.string().min(1).describe('Variant name, for example 500ml'),
     sku: z.string().min(1).describe('Unique SKU code, for example OIL-500'),
@@ -62,7 +66,7 @@ export const updateVariantTool = createTool({
   description:
     'Update a variant. Admin only. A variant product ID and SKU cannot be changed.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     id: z.string().describe('Variant ID'),
     name: z.preprocess(blankToUndefined, z.string().optional()).describe('New variant name'),
     priceCents: z
@@ -94,7 +98,7 @@ export const deleteVariantTool = createTool({
   id: 'delete-variant',
   description: 'Delete a variant. Admin only.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     id: z.string().describe('Variant ID'),
   }),
   outputSchema: successSchema,

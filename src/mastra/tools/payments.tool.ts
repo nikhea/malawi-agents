@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema } from '../lib/malawi-context';
+import { cleanInputObject } from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { checkoutSessionSchema, paymentSchema } from '../lib/malawi-schemas';
@@ -12,7 +13,7 @@ export const createPaymentIntentTool = createTool({
   description:
     'Create or reuse a Stripe payment intent for one of the authenticated customer\'s orders. The client secret is redacted from the model output; send the raw result to your storefront so Stripe.js can confirm the card.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     orderId: z.string().describe('Order ID to pay for'),
   }),
   outputSchema: paymentSchema,
@@ -33,7 +34,7 @@ export const createCheckoutSessionTool = createTool({
   description:
     'Create a Stripe-hosted checkout page for one of the authenticated customer\'s pending orders. Return the URL so the customer can open it and pay.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     orderId: z.string().describe('Order ID to pay for'),
   }),
   outputSchema: checkoutSessionSchema,

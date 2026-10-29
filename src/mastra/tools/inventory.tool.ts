@@ -1,7 +1,11 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
-import { blankToUndefined, compactPayload } from '../lib/malawi-input';
+import {
+  blankToUndefined,
+  cleanInputObject,
+  compactPayload,
+} from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { statusResponseSchema, stockSchema } from '../lib/malawi-schemas';
@@ -18,7 +22,7 @@ export const getStockTool = createTool({
   id: 'get-stock',
   description:
     'Read on-hand, reserved, and available stock for a product or variant. Admin only.',
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     productId: z.string().describe('Product ID'),
     variantId: z.preprocess(blankToUndefined, z.string().optional()).describe('Variant ID for a specific SKU'),
   }),
@@ -42,7 +46,7 @@ export const setStockTool = createTool({
   description:
     'Set the on-hand stock quantity for a product or variant (restocking). Admin only.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     productId: z.string().describe('Product ID'),
     variantId: z.preprocess(blankToUndefined, z.string().optional()).describe('Variant ID for a specific SKU'),
     qty: z.number().int().min(0).describe('New on-hand quantity'),
@@ -68,7 +72,7 @@ export const reserveStockTool = createTool({
   description:
     'Atomically hold stock for an order reference. Admin only. One short line fails the whole reservation.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     orderRef: z.string().describe('Order reference to reserve stock for'),
     lines: z.array(stockLineSchema).min(1).describe('Stock lines to hold'),
     ttlSeconds: z
@@ -103,7 +107,7 @@ export const releaseStockTool = createTool({
   description:
     'Release a stock hold for an order reference. Admin only. This operation is idempotent.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     orderRef: z.string().describe('Order reference whose hold should be released'),
   }),
   outputSchema: statusResponseSchema,
@@ -121,7 +125,7 @@ export const confirmStockTool = createTool({
   description:
     'Convert a stock hold into sales for an order reference. Admin only. This operation is idempotent.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     orderRef: z.string().describe('Order reference whose hold should be confirmed'),
   }),
   outputSchema: statusResponseSchema,

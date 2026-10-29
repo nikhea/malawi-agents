@@ -1,7 +1,11 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { malawiContextSchema } from "../lib/malawi-context";
-import { blankToUndefined, compactPayload } from "../lib/malawi-input";
+import {
+  blankToUndefined,
+  cleanInputObject,
+  compactPayload,
+} from "../lib/malawi-input";
 import { logToolStart } from "../lib/malawi-logging";
 import { createMalawiStore } from "../lib/malawi-store";
 import { cartSchema, successSchema } from "../lib/malawi-schemas";
@@ -12,7 +16,7 @@ export const getCartTool = createTool({
   id: "get-cart",
   description:
     "Get the authenticated customer's active cart, including line items and the subtotal in integer tambala. Filter items by search query, product, variant, sort order, or pagination.",
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     query: z
       .preprocess(blankToUndefined, z.string().optional())
       .describe("Filter cart items by product title or variant name substring"),
@@ -80,7 +84,7 @@ export const addCartItemTool = createTool({
   description:
     "Add a product or product variant to the authenticated customer's cart. Use get-product or list-variants first to find IDs.",
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     productId: z.string().describe("Product ID to add"),
     variantId: z
       .string()
@@ -112,7 +116,7 @@ export const setCartItemQtyTool = createTool({
   description:
     "Set the quantity of a cart line. The cart line ID comes from get-cart, not the product ID. A quantity of 0 removes the line.",
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     itemId: z.string().describe("Cart line ID from get-cart"),
     qty: z
       .number()
@@ -133,7 +137,7 @@ export const removeCartItemTool = createTool({
   id: "remove-cart-item",
   description:
     "Remove one line from the authenticated customer's cart. Use the cart line ID from get-cart.",
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     itemId: z.string().describe("Cart line ID from get-cart"),
   }),
   outputSchema: cartSchema,
@@ -150,7 +154,7 @@ export const clearCartTool = createTool({
   id: "clear-cart",
   description:
     "Remove every line from the authenticated customer's cart. A successful checkout already clears the cart.",
-  inputSchema: z.object({}),
+  inputSchema: cleanInputObject({}),
   outputSchema: successSchema,
   requestContextSchema,
   requireApproval: true,

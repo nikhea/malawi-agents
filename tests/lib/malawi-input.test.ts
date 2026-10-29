@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { compactPayload } from '../../src/mastra/lib/malawi-input';
+import { z } from 'zod';
+import {
+  cleanInputObject,
+  compactPayload,
+} from '../../src/mastra/lib/malawi-input';
 
 describe('compactPayload', () => {
   it('drops empty and whitespace-only strings', () => {
@@ -43,5 +47,26 @@ describe('compactPayload', () => {
     expect(compactPayload('value')).toBe('value');
     expect(compactPayload(0)).toBe(0);
     expect(compactPayload(false)).toBe(false);
+  });
+});
+
+describe('cleanInputObject', () => {
+  it('removes model-generated blanks before optional validation', () => {
+    const schema = cleanInputObject({
+      status: z.enum(['cancelled', 'paid']).optional(),
+      sort: z.enum(['newest', 'oldest']).optional(),
+      active: z.boolean().optional(),
+      offset: z.number().optional(),
+    });
+
+    expect(
+      schema.parse({
+        status: 'cancelled',
+        sort: '',
+        active: false,
+        offset: 0,
+        ignored: 'not part of the schema',
+      }),
+    ).toEqual({ status: 'cancelled', active: false, offset: 0 });
   });
 });

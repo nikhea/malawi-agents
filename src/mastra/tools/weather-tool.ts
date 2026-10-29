@@ -1,5 +1,6 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { cleanInputObject } from '../lib/malawi-input';
 
 interface GeocodingResponse {
   results: {
@@ -23,8 +24,8 @@ interface WeatherResponse {
 export const weatherTool = createTool({
   id: 'get-weather',
   description: 'Get current weather for a location',
-  inputSchema: z.object({
-    location: z.string().describe('City name'),
+  inputSchema: cleanInputObject({
+    location: z.string().min(1).describe('City name'),
   }),
   outputSchema: z.object({
     temperature: z.number(),

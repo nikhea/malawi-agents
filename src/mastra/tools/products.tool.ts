@@ -1,7 +1,12 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { malawiContextSchema, requireAdmin } from "../lib/malawi-context";
-import { blankToUndefined, compactPayload } from "../lib/malawi-input";
+import {
+  blankToUndefined,
+  cleanInputObject,
+  cleanInputSchema,
+  compactPayload,
+} from "../lib/malawi-input";
 import { logToolStart } from "../lib/malawi-logging";
 import { createMalawiStore } from "../lib/malawi-store";
 import {
@@ -16,7 +21,7 @@ export const listProductsTool = createTool({
   id: "list-products",
   description:
     "List or search products in the Malawi Store catalog. Prices are integer tambala (12500 means K125.00). Filter by price, date, category, size, stock, rating, active status, pagination, and sort order.",
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     query: z
       .preprocess(blankToUndefined, z.string().optional())
       .describe(
@@ -145,8 +150,8 @@ export const getProductTool = createTool({
   id: "get-product",
   description:
     "Get one product with its sellable variants by id, productId, or slug. Provide exactly one lookup value: id, productId, or slug.",
-  inputSchema: z
-    .object({
+  inputSchema: cleanInputSchema(
+    z.object({
       id: z
         .preprocess(blankToUndefined, z.string().optional())
         .describe("Product ID"),
@@ -161,6 +166,7 @@ export const getProductTool = createTool({
       ({ id, productId, slug }) => [id, productId, slug].filter(Boolean).length === 1,
       "Provide exactly one of id, productId, or slug",
     ),
+  ),
   outputSchema: productDetailSchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
@@ -177,7 +183,7 @@ export const createProductTool = createTool({
   description:
     "Create a product in the Malawi Store catalog. Admin only. Prices are integer tambala. Use this only when an administrator explicitly asks to add a product.",
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     name: z.string().min(1).describe("Product name"),
     categoryId: z.preprocess(blankToUndefined, z.string().optional())
       .describe("Category ID to file the product under"),
@@ -218,7 +224,7 @@ export const updateProductTool = createTool({
   description:
     "Update an existing product. Admin only. Slugs cannot be changed; use isActive false to deactivate a product instead of deleting it.",
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     id: z.string().describe("Product ID"),
     categoryId: z.preprocess(blankToUndefined, z.string().optional()).describe("New category ID"),
     name: z.preprocess(blankToUndefined, z.string().optional()).describe("New product name"),
@@ -262,7 +268,7 @@ export const deleteProductTool = createTool({
   description:
     "Permanently delete a product and its variants. Admin only. Prefer deactivating a product with update-product unless permanent deletion is explicitly requested.",
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     id: z.string().describe("Product ID"),
   }),
   outputSchema: successSchema,
