@@ -1,6 +1,8 @@
 import {
   RegexFilterProcessor,
   RegexRule,
+  ModerationProcessor,
+  PromptInjectionDetector,
   TokenCostControl,
   TokenLimiter,
   UnicodeNormalizer,
@@ -8,6 +10,7 @@ import {
 import { storedAgentToolSearch } from "./store-agent-tools.processors";
 import { MAX_STEPS } from "../utils/constant.utils";
 import { EnsureFinalResponseProcessor } from "./ensure-final-response";
+import { llmGuardrailModel } from "../lib/malawi-config";
 import {
   inputAccessGuardrail,
   inputClassifierGuardrail,
@@ -92,6 +95,24 @@ const tokenCostControl = new TokenCostControl({
   message: "Token cost limit exceeded. Please try again later.",
 });
 
+const LLM_GUARDRAIL_MODEL = llmGuardrailModel();
+
+const promptInjectionGuardrail = new PromptInjectionDetector({
+  model: LLM_GUARDRAIL_MODEL,
+  threshold: 0.8,
+  strategy: "block",
+  errorStrategy: "strict",
+  detectionTypes: ["injection", "jailbreak", "system-override"],
+});
+
+const inputModerationGuardrail = new ModerationProcessor({
+  model: LLM_GUARDRAIL_MODEL,
+  threshold: 0.8,
+  strategy: "block",
+  errorStrategy: "strict",
+  categories: ["hate", "harassment", "violence"],
+});
+
 tokenCostControl.onViolation = ({ detail }: any) => {
   console.log({ detail });
   console.log(
@@ -109,6 +130,8 @@ export const storedAgentInputProcessors = [
     collapseWhitespace: true,
   }),
   new TokenLimiter(127000),
+  promptInjectionGuardrail,
+  inputModerationGuardrail,
   inputClassifierGuardrail,
   inputAccessGuardrail,
   //   new RegexFilterProcessor({

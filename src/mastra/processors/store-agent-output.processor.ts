@@ -1,14 +1,19 @@
 import {
   BatchPartsProcessor,
+  PIIDetector,
   PrefillErrorHandler,
   ProviderHistoryCompat,
   StreamErrorRetryProcessor,
+  SystemPromptScrubber,
 } from "@mastra/core/processors";
+import { llmGuardrailModel } from "../lib/malawi-config";
 import {
   outputPaymentGuardrail,
   outputPrivacyGuardrail,
   outputGuardrail,
 } from "../classifier/store-validate.classifier";
+
+const LLM_GUARDRAIL_MODEL = llmGuardrailModel();
 
 export const storedAgentOutProcessors = [
   new BatchPartsProcessor({
@@ -19,6 +24,21 @@ export const storedAgentOutProcessors = [
   outputGuardrail,
   outputPaymentGuardrail,
   outputPrivacyGuardrail,
+  new PIIDetector({
+    model: LLM_GUARDRAIL_MODEL,
+    threshold: 0.8,
+    strategy: "redact",
+    errorStrategy: "warn",
+    redactionMethod: "mask",
+    detectionTypes: ["email", "phone", "credit-card"],
+  }),
+  new SystemPromptScrubber({
+    model: LLM_GUARDRAIL_MODEL,
+    strategy: "redact",
+    errorStrategy: "warn",
+    customPatterns: ["system prompt", "internal instructions", "tool schema"],
+    placeholderText: "[REDACTED]",
+  }),
 ];
 
 export const storedAgentErrorProcessors = [
