@@ -1,48 +1,101 @@
-import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
-import { malawiContextSchema } from '../lib/malawi-context';
-import { compactPayload } from '../lib/malawi-input';
-import { logToolStart } from '../lib/malawi-logging';
-import { createMalawiStore } from '../lib/malawi-store';
-import { cartSchema, successSchema } from '../lib/malawi-schemas';
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+import { malawiContextSchema } from "../lib/malawi-context";
+import { blankToUndefined, compactPayload } from "../lib/malawi-input";
+import { logToolStart } from "../lib/malawi-logging";
+import { createMalawiStore } from "../lib/malawi-store";
+import { cartSchema, successSchema } from "../lib/malawi-schemas";
 
 const requestContextSchema = malawiContextSchema;
 
 export const getCartTool = createTool({
-  id: 'get-cart',
+  id: "get-cart",
   description:
-    'Get the authenticated customer\'s active cart, including line items and the subtotal in integer tambala.',
-  inputSchema: z.object({}),
+    "Get the authenticated customer's active cart, including line items and the subtotal in integer tambala. Filter items by search query, product, variant, sort order, or pagination.",
+  inputSchema: z.object({
+    query: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe("Filter cart items by product title or variant name substring"),
+    productId: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe("Filter cart items by product ID"),
+    variantId: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe("Filter cart items by variant ID"),
+    sort: z
+      .enum([
+        "newest",
+        "oldest",
+        "price_asc",
+        "price_desc",
+        "qty_asc",
+        "qty_desc",
+      ])
+      .optional()
+      .describe("Sort order for the cart line items"),
+    page: z
+      .number()
+      .int()
+      .min(1)
+      .optional()
+      .describe("1-based page number; takes precedence over offset"),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe("Number of items per page. Defaults to 12, max 100."),
+    offset: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe("Number of items to skip for pagination"),
+  }),
   outputSchema: cartSchema,
   requestContextSchema,
-  execute: async (_input, { requestContext, observe }) => {
-    logToolStart('get-cart', observe, requestContext);
+  execute: async (
+    { query, productId, variantId, sort, page, limit, offset },
+    { requestContext, observe },
+  ) => {
+    logToolStart("get-cart", observe, requestContext);
     const store = createMalawiStore(requestContext);
-    return store.cart.get();
+    return store.cart.get(
+      compactPayload({
+        q: query,
+        product_id: productId,
+        variant_id: variantId,
+        sort,
+        page,
+        limit,
+        offset,
+      }),
+    );
   },
 });
 
 export const addCartItemTool = createTool({
-  id: 'add-cart-item',
+  id: "add-cart-item",
   description:
-    'Add a product or product variant to the authenticated customer\'s cart. Use get-product or list-variants first to find IDs.',
+    "Add a product or product variant to the authenticated customer's cart. Use get-product or list-variants first to find IDs.",
   requireApproval: true,
   inputSchema: z.object({
-    productId: z.string().describe('Product ID to add'),
+    productId: z.string().describe("Product ID to add"),
     variantId: z
       .string()
       .optional()
-      .describe('Variant ID. Omit to use the base product price.'),
+      .describe("Variant ID. Omit to use the base product price."),
     qty: z
       .number()
       .int()
       .min(1)
-      .describe('Quantity to add. Must be at least 1.'),
+      .describe("Quantity to add. Must be at least 1."),
   }),
   outputSchema: cartSchema,
   requestContextSchema,
   execute: async ({ productId, variantId, qty }, { requestContext, observe }) => {
-    logToolStart('add-cart-item', observe, requestContext);
+    logToolStart("add-cart-item", observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.cart.addItem(
       compactPayload({
@@ -55,54 +108,54 @@ export const addCartItemTool = createTool({
 });
 
 export const setCartItemQtyTool = createTool({
-  id: 'set-cart-item-qty',
+  id: "set-cart-item-qty",
   description:
-    'Set the quantity of a cart line. The cart line ID comes from get-cart, not the product ID. A quantity of 0 removes the line.',
+    "Set the quantity of a cart line. The cart line ID comes from get-cart, not the product ID. A quantity of 0 removes the line.",
   requireApproval: true,
   inputSchema: z.object({
-    itemId: z.string().describe('Cart line ID from get-cart'),
+    itemId: z.string().describe("Cart line ID from get-cart"),
     qty: z
       .number()
       .int()
       .min(0)
-      .describe('New quantity. Use 0 to remove the line.'),
+      .describe("New quantity. Use 0 to remove the line."),
   }),
   outputSchema: cartSchema,
   requestContextSchema,
   execute: async ({ itemId, qty }, { requestContext, observe }) => {
-    logToolStart('set-cart-item-qty', observe, requestContext);
+    logToolStart("set-cart-item-qty", observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.cart.setQty(itemId, qty);
   },
 });
 
 export const removeCartItemTool = createTool({
-  id: 'remove-cart-item',
+  id: "remove-cart-item",
   description:
-    'Remove one line from the authenticated customer\'s cart. Use the cart line ID from get-cart.',
-  requireApproval: true,
+    "Remove one line from the authenticated customer's cart. Use the cart line ID from get-cart.",
   inputSchema: z.object({
-    itemId: z.string().describe('Cart line ID from get-cart'),
+    itemId: z.string().describe("Cart line ID from get-cart"),
   }),
   outputSchema: cartSchema,
   requestContextSchema,
+  requireApproval: true,
   execute: async ({ itemId }, { requestContext, observe }) => {
-    logToolStart('remove-cart-item', observe, requestContext);
+    logToolStart("remove-cart-item", observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.cart.removeItem(itemId);
   },
 });
 
 export const clearCartTool = createTool({
-  id: 'clear-cart',
+  id: "clear-cart",
   description:
-    'Remove every line from the authenticated customer\'s cart. A successful checkout already clears the cart.',
-  requireApproval: true,
+    "Remove every line from the authenticated customer's cart. A successful checkout already clears the cart.",
   inputSchema: z.object({}),
   outputSchema: successSchema,
   requestContextSchema,
+  requireApproval: true,
   execute: async (_input, { requestContext, observe }) => {
-    logToolStart('clear-cart', observe, requestContext);
+    logToolStart("clear-cart", observe, requestContext);
     const store = createMalawiStore(requestContext);
     await store.cart.clear();
     return { success: true as const };

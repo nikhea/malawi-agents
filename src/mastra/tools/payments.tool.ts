@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { malawiContextSchema } from '../lib/malawi-context';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
-import { paymentSchema } from '../lib/malawi-schemas';
+import { checkoutSessionSchema, paymentSchema } from '../lib/malawi-schemas';
 
 const requestContextSchema = malawiContextSchema;
 
@@ -28,6 +28,24 @@ export const createPaymentIntentTool = createTool({
   },
 });
 
+export const createCheckoutSessionTool = createTool({
+  id: 'create-checkout-session',
+  description:
+    'Create a Stripe-hosted checkout page for one of the authenticated customer\'s pending orders. Return the URL so the customer can open it and pay.',
+  requireApproval: true,
+  inputSchema: z.object({
+    orderId: z.string().describe('Order ID to pay for'),
+  }),
+  outputSchema: checkoutSessionSchema,
+  requestContextSchema,
+  execute: async ({ orderId }, { requestContext, observe }) => {
+    logToolStart('create-checkout-session', observe, requestContext);
+    const store = createMalawiStore(requestContext);
+    return store.payments.createCheckoutSession(orderId);
+  },
+});
+
 export const paymentsTools = {
   createPaymentIntentTool,
+  createCheckoutSessionTool,
 };

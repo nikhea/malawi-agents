@@ -37,6 +37,32 @@ describe('getProductReviewsTool', () => {
     expectValidOutput(getProductReviewsTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/products/prod-1/reviews'));
   });
+
+  it('forwards filter and pagination parameters to the review summary query', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: reviewSummary }));
+
+    const result = await executeTool(
+      getProductReviewsTool,
+      {
+        productId: 'prod-1',
+        query: 'great',
+        rating: 5,
+        sort: 'highest',
+        page: 2,
+        limit: 12,
+        offset: 12,
+      },
+      context(),
+    );
+
+    expect(result).toEqual(reviewSummary);
+    expectValidOutput(getProductReviewsTool.outputSchema, result);
+    expect(calls[0].url).toBe(
+      apiUrl(
+        '/products/prod-1/reviews?q=great&rating=5&sort=highest&page=2&limit=12&offset=12',
+      ),
+    );
+  });
 });
 
 describe('createReviewTool', () => {

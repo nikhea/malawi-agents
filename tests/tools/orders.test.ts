@@ -47,6 +47,35 @@ describe('listOrdersTool', () => {
     expect(calls[0].url).toBe(apiUrl('/orders'));
     expect(calls[0].init.method).toBe('GET');
   });
+
+  it('forwards filter and pagination parameters to the orders query', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: [order] }));
+
+    const result = await executeTool(
+      listOrdersTool,
+      {
+        status: 'paid',
+        currency: 'USD',
+        createdAfter: '2026-01-01',
+        createdBefore: '2026-10-01',
+        minTotalCents: 5000,
+        maxTotalCents: 50000,
+        sort: 'total_desc',
+        page: 2,
+        limit: 12,
+        offset: 12,
+      },
+      context(),
+    );
+
+    expect(result).toEqual([order]);
+    expectValidOutput(listOrdersTool.outputSchema, result);
+    expect(calls[0].url).toBe(
+      apiUrl(
+        '/orders?status=paid&currency=USD&created_after=2026-01-01&created_before=2026-10-01&min_total_cents=5000&max_total_cents=50000&sort=total_desc&page=2&limit=12&offset=12',
+      ),
+    );
+  });
 });
 
 describe('getOrderTool', () => {

@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
-import { compactPayload } from '../lib/malawi-input';
+import { blankToUndefined, compactPayload } from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { categorySchema, successSchema } from '../lib/malawi-schemas';
@@ -11,14 +11,75 @@ const requestContextSchema = malawiContextSchema;
 export const listCategoriesTool = createTool({
   id: 'list-categories',
   description:
-    'List all product categories in the Malawi Store. Categories are returned flat and ordered by name.',
-  inputSchema: z.object({}),
+    'List or filter product categories in the Malawi Store. Filter by search query, parent category, root-only flag, product presence, sort order, and pagination.',
+  inputSchema: z.object({
+    query: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe('Filter categories by name, description, or slug substring'),
+    parentId: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe('Filter categories by parent category ID'),
+    rootOnly: z
+      .boolean()
+      .optional()
+      .describe('Set true to return only root (top-level) categories'),
+    hasProducts: z
+      .boolean()
+      .optional()
+      .describe(
+        'Filter categories: true for categories with active products, false for empty categories only',
+      ),
+    sort: z
+      .enum([
+        'name_asc',
+        'name_desc',
+        'newest',
+        'oldest',
+        'product_count_asc',
+        'product_count_desc',
+      ])
+      .optional()
+      .describe('Sort order for the categories'),
+    page: z
+      .number()
+      .int()
+      .min(1)
+      .optional()
+      .describe('1-based page number; takes precedence over offset'),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Page size. The API defaults to 12 and caps at 100.'),
+    offset: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe('Number of rows to skip for pagination'),
+  }),
   outputSchema: z.array(categorySchema),
   requestContextSchema,
-  execute: async (_input, { requestContext, observe }) => {
+  execute: async (
+    { query, parentId, rootOnly, hasProducts, sort, page, limit, offset },
+    { requestContext, observe },
+  ) => {
     logToolStart('list-categories', observe, requestContext);
     const store = createMalawiStore(requestContext);
-    return store.categories.list();
+    return store.categories.list(
+      compactPayload({
+        q: query,
+        parent_id: parentId,
+        root_only: rootOnly,
+        has_products: hasProducts,
+        sort,
+        page,
+        limit,
+        offset,
+      }),
+    );
   },
 });
 
@@ -51,16 +112,12 @@ export const createCategoryTool = createTool({
   requireApproval: true,
   inputSchema: z.object({
     name: z.string().min(1).describe('Category name'),
-    slug: z
-      .string()
-      .optional()
+    slug: z.preprocess(blankToUndefined, z.string().optional())
       .describe('URL slug. Generated from the name when omitted.'),
-    description: z.string().optional().describe('Category description'),
-    parentId: z
-      .string()
-      .optional()
+    description: z.preprocess(blankToUndefined, z.string().optional()).describe('Category description'),
+    parentId: z.preprocess(blankToUndefined, z.string().optional())
       .describe('Parent category ID. Omit for a root category.'),
-    imageUrl: z.string().optional().describe('Category image URL'),
+    imageUrl: z.preprocess(blankToUndefined, z.string().optional()).describe('Category image URL'),
   }),
   outputSchema: categorySchema,
   requestContextSchema,
@@ -87,9 +144,9 @@ export const updateCategoryTool = createTool({
   requireApproval: true,
   inputSchema: z.object({
     id: z.string().describe('Category ID'),
-    name: z.string().optional().describe('New category name'),
-    description: z.string().optional().describe('New description'),
-    parentId: z.string().optional().describe('New parent category ID'),
+    name: z.preprocess(blankToUndefined, z.string().optional()).describe('New category name'),
+    description: z.preprocess(blankToUndefined, z.string().optional()).describe('New description'),
+    parentId: z.preprocess(blankToUndefined, z.string().optional()).describe('New parent category ID'),
     clearParent: z
       .boolean()
       .optional()

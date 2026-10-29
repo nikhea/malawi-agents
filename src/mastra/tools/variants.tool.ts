@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
-import { compactPayload } from '../lib/malawi-input';
+import { blankToUndefined, compactPayload } from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { successSchema, variantSchema } from '../lib/malawi-schemas';
@@ -64,7 +64,7 @@ export const updateVariantTool = createTool({
   requireApproval: true,
   inputSchema: z.object({
     id: z.string().describe('Variant ID'),
-    name: z.string().optional().describe('New variant name'),
+    name: z.preprocess(blankToUndefined, z.string().optional()).describe('New variant name'),
     priceCents: z
       .number()
       .int()

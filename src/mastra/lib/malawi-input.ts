@@ -6,6 +6,13 @@ function isBlank(value: unknown): boolean {
   );
 }
 
+/** Treat whitespace-only strings as omitted optional input values. */
+export const blankToUndefined = (value: unknown) =>
+  value === null ||
+  (typeof value === "string" && value.trim() === "")
+    ? undefined
+    : value;
+
 /**
  * Recursively drops blank values from a Store API payload.
  *

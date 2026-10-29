@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
-import { compactPayload } from '../lib/malawi-input';
+import { blankToUndefined, compactPayload } from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { statusResponseSchema, stockSchema } from '../lib/malawi-schemas';
@@ -10,7 +10,7 @@ const requestContextSchema = malawiContextSchema;
 
 const stockLineSchema = z.object({
   productId: z.string().describe('Product ID'),
-  variantId: z.string().optional().describe('Variant ID for a specific SKU'),
+  variantId: z.preprocess(blankToUndefined, z.string().optional()).describe('Variant ID for a specific SKU'),
   qty: z.number().int().min(1).describe('Quantity to hold'),
 });
 
@@ -20,7 +20,7 @@ export const getStockTool = createTool({
     'Read on-hand, reserved, and available stock for a product or variant. Admin only.',
   inputSchema: z.object({
     productId: z.string().describe('Product ID'),
-    variantId: z.string().optional().describe('Variant ID for a specific SKU'),
+    variantId: z.preprocess(blankToUndefined, z.string().optional()).describe('Variant ID for a specific SKU'),
   }),
   outputSchema: stockSchema,
   requestContextSchema,
@@ -44,7 +44,7 @@ export const setStockTool = createTool({
   requireApproval: true,
   inputSchema: z.object({
     productId: z.string().describe('Product ID'),
-    variantId: z.string().optional().describe('Variant ID for a specific SKU'),
+    variantId: z.preprocess(blankToUndefined, z.string().optional()).describe('Variant ID for a specific SKU'),
     qty: z.number().int().min(0).describe('New on-hand quantity'),
   }),
   outputSchema: stockSchema,

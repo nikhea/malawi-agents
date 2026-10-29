@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
-import { compactPayload } from '../lib/malawi-input';
+import { blankToUndefined, compactPayload } from '../lib/malawi-input';
 import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import {
@@ -20,23 +20,69 @@ const reviewFields = {
     .max(5)
     .optional()
     .describe('Star rating from 1 to 5'),
-  title: z.string().optional().describe('Short review title'),
-  body: z.string().optional().describe('Review body'),
+  title: z.preprocess(blankToUndefined, z.string().optional()).describe('Short review title'),
+  body: z.preprocess(blankToUndefined, z.string().optional()).describe('Review body'),
 };
 
 export const getProductReviewsTool = createTool({
   id: 'get-product-reviews',
   description:
-    'Get the public review summary for a product: average rating, review count, and the newest reviews.',
+    'Get the public review summary for a product: average rating, review count, and reviews. Filter reviews by text search, rating, sort order, and pagination.',
   inputSchema: z.object({
     productId: z.string().describe('Product ID'),
+    query: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe('Filter reviews by substring matching title, body, or author'),
+    rating: z
+      .number()
+      .int()
+      .min(1)
+      .max(5)
+      .optional()
+      .describe('Filter reviews by exact star rating (1 to 5)'),
+    sort: z
+      .enum(['newest', 'oldest', 'highest', 'lowest'])
+      .optional()
+      .describe('Sort order for the reviews'),
+    page: z
+      .number()
+      .int()
+      .min(1)
+      .optional()
+      .describe('1-based page number; takes precedence over offset'),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe('Page size. The API defaults to 12 and caps at 100.'),
+    offset: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe('Number of rows to skip for pagination'),
   }),
   outputSchema: reviewSummarySchema,
   requestContextSchema,
-  execute: async ({ productId }, { requestContext, observe }) => {
+  execute: async (
+    { productId, query, rating, sort, page, limit, offset },
+    { requestContext, observe },
+  ) => {
     logToolStart('get-product-reviews', observe, requestContext);
     const store = createMalawiStore(requestContext);
-    return store.reviews.summary(productId);
+    return store.reviews.summary(
+      productId,
+      compactPayload({
+        q: query,
+        rating,
+        sort,
+        page,
+        limit,
+        offset,
+      }),
+    );
   },
 });
 

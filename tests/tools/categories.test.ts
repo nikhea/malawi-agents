@@ -34,6 +34,33 @@ describe('listCategoriesTool', () => {
     expect(calls[0].url).toBe(apiUrl('/categories'));
     expect(calls[0].init.method).toBe('GET');
   });
+
+  it('forwards filter and pagination parameters to the categories query', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: [category] }));
+
+    const result = await executeTool(
+      listCategoriesTool,
+      {
+        query: 'oil',
+        parentId: 'parent-1',
+        rootOnly: false,
+        hasProducts: true,
+        sort: 'name_desc',
+        page: 2,
+        limit: 12,
+        offset: 12,
+      },
+      context(),
+    );
+
+    expect(result).toEqual([category]);
+    expectValidOutput(listCategoriesTool.outputSchema, result);
+    expect(calls[0].url).toBe(
+      apiUrl(
+        '/categories?q=oil&parent_id=parent-1&root_only=false&has_products=true&sort=name_desc&page=2&limit=12&offset=12',
+      ),
+    );
+  });
 });
 
 describe('getCategoryTool', () => {
