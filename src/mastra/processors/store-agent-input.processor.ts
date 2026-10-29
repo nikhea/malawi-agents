@@ -8,6 +8,10 @@ import {
 import { storedAgentToolSearch } from "./store-agent-tools.processors";
 import { MAX_STEPS } from "../utils/constant.utils";
 import { EnsureFinalResponseProcessor } from "./ensure-final-response";
+import {
+  inputAccessGuardrail,
+  inputClassifierGuardrail,
+} from "../classifier/store-validate.classifier";
 
 const rules: RegexRule[] | undefined = [
   {
@@ -105,6 +109,8 @@ export const storedAgentInputProcessors = [
     collapseWhitespace: true,
   }),
   new TokenLimiter(127000),
+  inputClassifierGuardrail,
+  inputAccessGuardrail,
   //   new RegexFilterProcessor({
   //     presets: [
   //       // "pii",

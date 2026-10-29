@@ -27,6 +27,13 @@ import {
   redisCache,
 } from "./lib/malawi-runtime";
 import { SimpleAuth } from "@mastra/core/server";
+import {
+  storeInputClassifier,
+  storeInputAccessClassifier,
+  storeOutputClassifier,
+  storeOutputPaymentClassifier,
+  storeOutputPrivacyClassifier,
+} from "./classifier/store-validate.classifier";
 // import { KNOWLEDGE_ROUTES } from "@mastra/server/server-adapter";
 
 type User = {
@@ -60,13 +67,20 @@ export const mastra = new Mastra({
     completenessScorer,
     translationScorer,
   },
+  classifiers: {
+    storeInputClassifier,
+    storeInputAccessClassifier,
+    storeOutputClassifier,
+    storeOutputPaymentClassifier,
+    storeOutputPrivacyClassifier,
+  },
   editor: new MastraEditor(),
 
   knowledge: {},
   storage: await createMastraStorage(),
   logger,
   observability: createMastraObservability({ logger }),
-  server: {
+  studio: {
     auth: new SimpleAuth<User>({
       tokens: {
         "sk-admin-token-123": {
@@ -81,6 +95,8 @@ export const mastra = new Mastra({
         },
       },
     }),
+  },
+  server: {
     // apiRoutes: [...KNOWLEDGE_ROUTES],
     middleware: [
       {
