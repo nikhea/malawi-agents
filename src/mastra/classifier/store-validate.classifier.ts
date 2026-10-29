@@ -94,8 +94,6 @@ export const inputAccessGuardrail = new ClassifierProcessor({
   maxInputLength: 2000,
   onResult: (answers, { abort }) => {
     if (
-      answers.unauthorizedData.type === "refusal" ||
-      answers.bypassApproval.type === "refusal" ||
       (answers.unauthorizedData.probability ?? 0) > 0.95 ||
       (answers.bypassApproval.probability ?? 0) > 0.95
     ) {
