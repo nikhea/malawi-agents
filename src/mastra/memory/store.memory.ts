@@ -33,9 +33,11 @@ export const shopperProfileSchema = z.object({
         ),
       favouriteCategories: z
         .array(z.string().max(60))
-        .max(5)
+        .max(6)
         .optional()
-        .describe("Category slugs"),
+        .describe(
+          "Up to 6 deduplicated canonical category slugs verified in the catalog",
+        ),
       recentProducts: z
         .array(
           z.object({
