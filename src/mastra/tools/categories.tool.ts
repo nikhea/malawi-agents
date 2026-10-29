@@ -12,6 +12,26 @@ import { categorySchema, successSchema } from '../lib/malawi-schemas';
 
 const requestContextSchema = malawiContextSchema;
 
+function categoryModelOutput(
+  categories: Array<z.infer<typeof categorySchema>>,
+) {
+  return {
+    type: 'content' as const,
+    value: [
+      { type: 'json' as const, value: categories },
+      ...categories.flatMap((category) =>
+        category.image_url
+          ? [{ type: 'image-url' as const, url: category.image_url }]
+          : [],
+      ),
+    ],
+  };
+}
+
+function singleCategoryModelOutput(category: z.infer<typeof categorySchema>) {
+  return categoryModelOutput([category]);
+}
+
 export const listCategoriesTool = createLoggedTool({
   id: 'list-categories',
   description:
@@ -66,6 +86,7 @@ export const listCategoriesTool = createLoggedTool({
   }),
   outputSchema: z.array(categorySchema),
   requestContextSchema,
+  toModelOutput: categoryModelOutput,
   execute: async (
     { query, parentId, rootOnly, hasProducts, sort, page, limit, offset },
     { requestContext, observe },
@@ -100,6 +121,7 @@ export const getCategoryTool = createLoggedTool({
   ])),
   outputSchema: categorySchema,
   requestContextSchema,
+  toModelOutput: singleCategoryModelOutput,
   execute: async (input, { requestContext, observe }) => {
     const store = createMalawiStore(requestContext);
     if ('id' in input) return store.categories.get(input.id);

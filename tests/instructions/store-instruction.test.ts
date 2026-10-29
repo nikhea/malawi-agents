@@ -15,5 +15,6 @@ describe('store agent truth and working-memory instructions', () => {
     expect(storeInstructions).toContain('Never store prices');
     expect(storeInstructions).toContain('never use limit 0');
     expect(storeInstructions).toContain('returned field names such as in_stock');
+    expect(storeInstructions).toContain('Never print the raw image URL as visible text');
   });
 });

@@ -24,6 +24,16 @@ beforeEach(() => {
 });
 
 describe('listCategoriesTool', () => {
+  it('maps category images to multimodal model output', () => {
+    expect(listCategoriesTool.toModelOutput?.([category])).toEqual({
+      type: 'content',
+      value: [
+        { type: 'json', value: [category] },
+        { type: 'image-url', url: category.image_url },
+      ],
+    });
+  });
+
   it('lists categories', async () => {
     const { calls } = stubFetch(() => jsonResponse({ data: [category] }));
 
@@ -64,6 +74,16 @@ describe('listCategoriesTool', () => {
 });
 
 describe('getCategoryTool', () => {
+  it('maps a category image to multimodal model output', () => {
+    expect(getCategoryTool.toModelOutput?.(category)).toEqual({
+      type: 'content',
+      value: [
+        { type: 'json', value: [category] },
+        { type: 'image-url', url: category.image_url },
+      ],
+    });
+  });
+
   it('gets a category by ID', async () => {
     const { calls } = stubFetch(() => jsonResponse({ data: category }));
 
