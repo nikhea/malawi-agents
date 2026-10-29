@@ -1,18 +1,17 @@
-import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { createLoggedTool } from '../lib/malawi-logging';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
 import {
   blankToUndefined,
   cleanInputObject,
   compactPayload,
 } from '../lib/malawi-input';
-import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { successSchema, variantSchema } from '../lib/malawi-schemas';
 
 const requestContextSchema = malawiContextSchema;
 
-export const listVariantsTool = createTool({
+export const listVariantsTool = createLoggedTool({
   id: 'list-variants',
   description:
     'List the sellable SKU variants for a product. Prices are integer tambala.',
@@ -22,13 +21,12 @@ export const listVariantsTool = createTool({
   outputSchema: z.array(variantSchema),
   requestContextSchema,
   execute: async ({ productId }, { requestContext, observe }) => {
-    logToolStart('list-variants', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.variants.list(productId);
   },
 });
 
-export const createVariantTool = createTool({
+export const createVariantTool = createLoggedTool({
   id: 'create-variant',
   description:
     'Create a sellable SKU variant for a product. Admin only. Prices are integer tambala.',
@@ -47,7 +45,6 @@ export const createVariantTool = createTool({
   outputSchema: variantSchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
-    logToolStart('create-variant', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.variants.create(
@@ -61,7 +58,7 @@ export const createVariantTool = createTool({
   },
 });
 
-export const updateVariantTool = createTool({
+export const updateVariantTool = createLoggedTool({
   id: 'update-variant',
   description:
     'Update a variant. Admin only. A variant product ID and SKU cannot be changed.',
@@ -80,7 +77,6 @@ export const updateVariantTool = createTool({
   outputSchema: variantSchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
-    logToolStart('update-variant', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.variants.update(
@@ -94,7 +90,7 @@ export const updateVariantTool = createTool({
   },
 });
 
-export const deleteVariantTool = createTool({
+export const deleteVariantTool = createLoggedTool({
   id: 'delete-variant',
   description: 'Delete a variant. Admin only.',
   requireApproval: true,
@@ -104,7 +100,6 @@ export const deleteVariantTool = createTool({
   outputSchema: successSchema,
   requestContextSchema,
   execute: async ({ id }, { requestContext, observe }) => {
-    logToolStart('delete-variant', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     await store.variants.delete(id);

@@ -1,5 +1,5 @@
-import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { createLoggedTool } from '../lib/malawi-logging';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
 import {
   blankToUndefined,
@@ -7,13 +7,12 @@ import {
   cleanInputSchema,
   compactPayload,
 } from '../lib/malawi-input';
-import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { categorySchema, successSchema } from '../lib/malawi-schemas';
 
 const requestContextSchema = malawiContextSchema;
 
-export const listCategoriesTool = createTool({
+export const listCategoriesTool = createLoggedTool({
   id: 'list-categories',
   description:
     'List or filter product categories in the Malawi Store. Filter by search query, parent category, root-only flag, product presence, sort order, and pagination.',
@@ -71,7 +70,6 @@ export const listCategoriesTool = createTool({
     { query, parentId, rootOnly, hasProducts, sort, page, limit, offset },
     { requestContext, observe },
   ) => {
-    logToolStart('list-categories', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.categories.list(
       compactPayload({
@@ -88,7 +86,7 @@ export const listCategoriesTool = createTool({
   },
 });
 
-export const getCategoryTool = createTool({
+export const getCategoryTool = createLoggedTool({
   id: 'get-category',
   description:
     'Get one product category by its ID or slug. Use list-categories first when you only know the category name.',
@@ -103,14 +101,13 @@ export const getCategoryTool = createTool({
   outputSchema: categorySchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
-    logToolStart('get-category', observe, requestContext);
     const store = createMalawiStore(requestContext);
     if ('id' in input) return store.categories.get(input.id);
     return store.categories.getBySlug(input.slug);
   },
 });
 
-export const createCategoryTool = createTool({
+export const createCategoryTool = createLoggedTool({
   id: 'create-category',
   description:
     'Create a product category. Admin only. Use this only when an administrator explicitly asks to add a category.',
@@ -127,7 +124,6 @@ export const createCategoryTool = createTool({
   outputSchema: categorySchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
-    logToolStart('create-category', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.categories.create(
@@ -142,7 +138,7 @@ export const createCategoryTool = createTool({
   },
 });
 
-export const updateCategoryTool = createTool({
+export const updateCategoryTool = createLoggedTool({
   id: 'update-category',
   description:
     'Update a product category. Admin only. Slugs cannot be changed. Set clearParent true to move the category back to the root.',
@@ -160,7 +156,6 @@ export const updateCategoryTool = createTool({
   outputSchema: categorySchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
-    logToolStart('update-category', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.categories.update(
@@ -175,7 +170,7 @@ export const updateCategoryTool = createTool({
   },
 });
 
-export const deleteCategoryTool = createTool({
+export const deleteCategoryTool = createLoggedTool({
   id: 'delete-category',
   description:
     'Delete a product category. Admin only. Child categories become root categories; they are not deleted.',
@@ -186,7 +181,6 @@ export const deleteCategoryTool = createTool({
   outputSchema: successSchema,
   requestContextSchema,
   execute: async ({ id }, { requestContext, observe }) => {
-    logToolStart('delete-category', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     await store.categories.delete(id);

@@ -1,12 +1,11 @@
-import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { createLoggedTool } from '../lib/malawi-logging';
 import { malawiContextSchema } from '../lib/malawi-context';
 import {
   blankToUndefined,
   cleanInputObject,
   compactPayload,
 } from '../lib/malawi-input';
-import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import {
   statusResponseSchema,
@@ -15,7 +14,7 @@ import {
 
 const requestContextSchema = malawiContextSchema;
 
-export const listWishlistTool = createTool({
+export const listWishlistTool = createLoggedTool({
   id: 'list-wishlist',
   description:
     "List or filter the authenticated customer's wishlist items. Filter by search query, category, sort order, and pagination. Each item includes a product snapshot and its current price in integer tambala.",
@@ -63,7 +62,6 @@ export const listWishlistTool = createTool({
     { query, categoryId, sort, page, limit, offset },
     { requestContext, observe },
   ) => {
-    logToolStart('list-wishlist', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.wishlist.list(
       compactPayload({
@@ -78,7 +76,7 @@ export const listWishlistTool = createTool({
   },
 });
 
-export const addToWishlistTool = createTool({
+export const addToWishlistTool = createLoggedTool({
   id: 'add-to-wishlist',
   description:
     'Add a product to the authenticated customer\'s wishlist. This is idempotent: adding the same product again succeeds.',
@@ -89,13 +87,12 @@ export const addToWishlistTool = createTool({
   outputSchema: wishlistItemSchema,
   requestContextSchema,
   execute: async ({ productId }, { requestContext, observe }) => {
-    logToolStart('add-to-wishlist', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.wishlist.add(productId);
   },
 });
 
-export const removeFromWishlistTool = createTool({
+export const removeFromWishlistTool = createLoggedTool({
   id: 'remove-from-wishlist',
   description:
     'Remove a product from the authenticated customer\'s wishlist. Pass the product ID, not the wishlist row ID.',
@@ -106,7 +103,6 @@ export const removeFromWishlistTool = createTool({
   outputSchema: statusResponseSchema,
   requestContextSchema,
   execute: async ({ productId }, { requestContext, observe }) => {
-    logToolStart('remove-from-wishlist', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.wishlist.remove(productId);
   },

@@ -1,12 +1,11 @@
-import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { createLoggedTool } from '../lib/malawi-logging';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
 import {
   blankToUndefined,
   cleanInputObject,
   compactPayload,
 } from '../lib/malawi-input';
-import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import {
   reviewSchema,
@@ -28,7 +27,7 @@ const reviewFields = {
   body: z.preprocess(blankToUndefined, z.string().optional()).describe('Review body'),
 };
 
-export const getProductReviewsTool = createTool({
+export const getProductReviewsTool = createLoggedTool({
   id: 'get-product-reviews',
   description:
     'Get the public review summary for a product: average rating, review count, and reviews. Filter reviews by text search, rating, sort order, and pagination.',
@@ -74,7 +73,6 @@ export const getProductReviewsTool = createTool({
     { productId, query, rating, sort, page, limit, offset },
     { requestContext, observe },
   ) => {
-    logToolStart('get-product-reviews', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.reviews.summary(
       productId,
@@ -90,7 +88,7 @@ export const getProductReviewsTool = createTool({
   },
 });
 
-export const createReviewTool = createTool({
+export const createReviewTool = createLoggedTool({
   id: 'create-review',
   description:
     'Write a review for a product as the authenticated customer. Each customer may have one review per product.',
@@ -109,7 +107,6 @@ export const createReviewTool = createTool({
   outputSchema: reviewSchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
-    logToolStart('create-review', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.reviews.create(
       input.productId,
@@ -122,7 +119,7 @@ export const createReviewTool = createTool({
   },
 });
 
-export const updateReviewTool = createTool({
+export const updateReviewTool = createLoggedTool({
   id: 'update-review',
   description:
     'Edit the authenticated customer\'s own review. Use get-product-reviews or the raw review ID to find it.',
@@ -134,7 +131,6 @@ export const updateReviewTool = createTool({
   outputSchema: reviewSchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
-    logToolStart('update-review', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.reviews.update(
       input.reviewId,
@@ -147,7 +143,7 @@ export const updateReviewTool = createTool({
   },
 });
 
-export const deleteReviewTool = createTool({
+export const deleteReviewTool = createLoggedTool({
   id: 'delete-review',
   description: 'Delete the authenticated customer\'s own review.',
   requireApproval: true,
@@ -157,14 +153,13 @@ export const deleteReviewTool = createTool({
   outputSchema: successSchema,
   requestContextSchema,
   execute: async ({ reviewId }, { requestContext, observe }) => {
-    logToolStart('delete-review', observe, requestContext);
     const store = createMalawiStore(requestContext);
     await store.reviews.delete(reviewId);
     return { success: true as const };
   },
 });
 
-export const deleteAnyReviewTool = createTool({
+export const deleteAnyReviewTool = createLoggedTool({
   id: 'delete-any-review',
   description:
     'Moderate reviews by deleting any review. Admin only. Use only for moderation requests.',
@@ -175,7 +170,6 @@ export const deleteAnyReviewTool = createTool({
   outputSchema: successSchema,
   requestContextSchema,
   execute: async ({ reviewId }, { requestContext, observe }) => {
-    logToolStart('delete-any-review', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     await store.reviews.deleteAny(reviewId);

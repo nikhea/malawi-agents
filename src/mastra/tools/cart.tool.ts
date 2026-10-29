@@ -1,18 +1,17 @@
-import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+import { createLoggedTool } from "../lib/malawi-logging";
 import { malawiContextSchema } from "../lib/malawi-context";
 import {
   blankToUndefined,
   cleanInputObject,
   compactPayload,
 } from "../lib/malawi-input";
-import { logToolStart } from "../lib/malawi-logging";
 import { createMalawiStore } from "../lib/malawi-store";
 import { cartSchema, successSchema } from "../lib/malawi-schemas";
 
 const requestContextSchema = malawiContextSchema;
 
-export const getCartTool = createTool({
+export const getCartTool = createLoggedTool({
   id: "get-cart",
   description:
     "Get the authenticated customer's active cart, including line items and the subtotal in integer tambala. Filter items by search query, product, variant, sort order, or pagination.",
@@ -63,7 +62,6 @@ export const getCartTool = createTool({
     { query, productId, variantId, sort, page, limit, offset },
     { requestContext, observe },
   ) => {
-    logToolStart("get-cart", observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.cart.get(
       compactPayload({
@@ -79,7 +77,7 @@ export const getCartTool = createTool({
   },
 });
 
-export const addCartItemTool = createTool({
+export const addCartItemTool = createLoggedTool({
   id: "add-cart-item",
   description:
     "Add a product or product variant to the authenticated customer's cart. Use get-product or list-variants first to find IDs.",
@@ -99,7 +97,6 @@ export const addCartItemTool = createTool({
   outputSchema: cartSchema,
   requestContextSchema,
   execute: async ({ productId, variantId, qty }, { requestContext, observe }) => {
-    logToolStart("add-cart-item", observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.cart.addItem(
       compactPayload({
@@ -111,7 +108,7 @@ export const addCartItemTool = createTool({
   },
 });
 
-export const setCartItemQtyTool = createTool({
+export const setCartItemQtyTool = createLoggedTool({
   id: "set-cart-item-qty",
   description:
     "Set the quantity of a cart line. The cart line ID comes from get-cart, not the product ID. A quantity of 0 removes the line.",
@@ -127,13 +124,12 @@ export const setCartItemQtyTool = createTool({
   outputSchema: cartSchema,
   requestContextSchema,
   execute: async ({ itemId, qty }, { requestContext, observe }) => {
-    logToolStart("set-cart-item-qty", observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.cart.setQty(itemId, qty);
   },
 });
 
-export const removeCartItemTool = createTool({
+export const removeCartItemTool = createLoggedTool({
   id: "remove-cart-item",
   description:
     "Remove one line from the authenticated customer's cart. Use the cart line ID from get-cart.",
@@ -144,13 +140,12 @@ export const removeCartItemTool = createTool({
   requestContextSchema,
   requireApproval: true,
   execute: async ({ itemId }, { requestContext, observe }) => {
-    logToolStart("remove-cart-item", observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.cart.removeItem(itemId);
   },
 });
 
-export const clearCartTool = createTool({
+export const clearCartTool = createLoggedTool({
   id: "clear-cart",
   description:
     "Remove every line from the authenticated customer's cart. A successful checkout already clears the cart.",
@@ -159,7 +154,6 @@ export const clearCartTool = createTool({
   requestContextSchema,
   requireApproval: true,
   execute: async (_input, { requestContext, observe }) => {
-    logToolStart("clear-cart", observe, requestContext);
     const store = createMalawiStore(requestContext);
     await store.cart.clear();
     return { success: true as const };

@@ -1,18 +1,17 @@
-import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { createLoggedTool } from '../lib/malawi-logging';
 import { malawiContextSchema } from '../lib/malawi-context';
 import {
   blankToUndefined,
   cleanInputObject,
   compactPayload,
 } from '../lib/malawi-input';
-import { logToolStart } from '../lib/malawi-logging';
 import { createMalawiStore } from '../lib/malawi-store';
 import { orderSchema } from '../lib/malawi-schemas';
 
 const requestContextSchema = malawiContextSchema;
 
-export const checkoutOrderTool = createTool({
+export const checkoutOrderTool = createLoggedTool({
   id: 'checkout-order',
   description:
     'Place an order from the authenticated customer\'s current cart. This freezes the cart, reserves stock, clears the cart, and returns a pending order. Confirm with the customer before calling this tool.',
@@ -21,13 +20,12 @@ export const checkoutOrderTool = createTool({
   outputSchema: orderSchema,
   requestContextSchema,
   execute: async (_input, { requestContext, observe }) => {
-    logToolStart('checkout-order', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.orders.checkout();
   },
 });
 
-export const listOrdersTool = createTool({
+export const listOrdersTool = createLoggedTool({
   id: 'list-orders',
   description:
     "List or filter the authenticated customer's orders. Filter by status, currency, date range, total bounds, sort order, and pagination. Use get-order for full line details.",
@@ -98,7 +96,6 @@ export const listOrdersTool = createTool({
     },
     { requestContext, observe },
   ) => {
-    logToolStart('list-orders', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.orders.list(
       compactPayload({
@@ -117,7 +114,7 @@ export const listOrdersTool = createTool({
   },
 });
 
-export const getOrderTool = createTool({
+export const getOrderTool = createLoggedTool({
   id: 'get-order',
   description:
     'Get one of the authenticated customer\'s orders by ID, including its frozen line items and status.',
@@ -127,13 +124,12 @@ export const getOrderTool = createTool({
   outputSchema: orderSchema,
   requestContextSchema,
   execute: async ({ id }, { requestContext, observe }) => {
-    logToolStart('get-order', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.orders.get(id);
   },
 });
 
-export const cancelOrderTool = createTool({
+export const cancelOrderTool = createLoggedTool({
   id: 'cancel-order',
   description:
     'Cancel a pending order for the authenticated customer and release its stock hold. Paid or already cancelled orders cannot be cancelled.',
@@ -144,7 +140,6 @@ export const cancelOrderTool = createTool({
   outputSchema: orderSchema,
   requestContextSchema,
   execute: async ({ id }, { requestContext, observe }) => {
-    logToolStart('cancel-order', observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.orders.cancel(id);
   },

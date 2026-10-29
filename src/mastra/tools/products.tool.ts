@@ -1,5 +1,5 @@
-import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
+import { createLoggedTool } from "../lib/malawi-logging";
 import { malawiContextSchema, requireAdmin } from "../lib/malawi-context";
 import {
   blankToUndefined,
@@ -7,7 +7,6 @@ import {
   cleanInputSchema,
   compactPayload,
 } from "../lib/malawi-input";
-import { logToolStart } from "../lib/malawi-logging";
 import { createMalawiStore } from "../lib/malawi-store";
 import {
   productDetailSchema,
@@ -17,7 +16,7 @@ import {
 
 const requestContextSchema = malawiContextSchema;
 
-export const listProductsTool = createTool({
+export const listProductsTool = createLoggedTool({
   id: "list-products",
   description:
     "List or search products in the Malawi Store catalog. Prices are integer tambala (12500 means K125.00). Filter by price, date, category, size, stock, rating, active status, pagination, and sort order.",
@@ -122,7 +121,6 @@ export const listProductsTool = createTool({
     },
     { requestContext, observe },
   ) => {
-    logToolStart("list-products", observe, requestContext);
     const store = createMalawiStore(requestContext);
     return store.products.list(
       compactPayload({
@@ -146,7 +144,7 @@ export const listProductsTool = createTool({
   },
 });
 
-export const getProductTool = createTool({
+export const getProductTool = createLoggedTool({
   id: "get-product",
   description:
     "Get one product with its sellable variants by id, productId, or slug. Provide exactly one lookup value: id, productId, or slug.",
@@ -170,7 +168,6 @@ export const getProductTool = createTool({
   outputSchema: productDetailSchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
-    logToolStart("get-product", observe, requestContext);
     const store = createMalawiStore(requestContext);
     if (input.id) return store.products.get(input.id);
     if (input.productId) return store.products.get(input.productId);
@@ -178,7 +175,7 @@ export const getProductTool = createTool({
   },
 });
 
-export const createProductTool = createTool({
+export const createProductTool = createLoggedTool({
   id: "create-product",
   description:
     "Create a product in the Malawi Store catalog. Admin only. Prices are integer tambala. Use this only when an administrator explicitly asks to add a product.",
@@ -202,7 +199,6 @@ export const createProductTool = createTool({
   outputSchema: productSchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
-    logToolStart("create-product", observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.products.create(
@@ -219,7 +215,7 @@ export const createProductTool = createTool({
   },
 });
 
-export const updateProductTool = createTool({
+export const updateProductTool = createLoggedTool({
   id: "update-product",
   description:
     "Update an existing product. Admin only. Slugs cannot be changed; use isActive false to deactivate a product instead of deleting it.",
@@ -245,7 +241,6 @@ export const updateProductTool = createTool({
   outputSchema: productSchema,
   requestContextSchema,
   execute: async (input, { requestContext, observe }) => {
-    logToolStart("update-product", observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.products.update(
@@ -263,7 +258,7 @@ export const updateProductTool = createTool({
   },
 });
 
-export const deleteProductTool = createTool({
+export const deleteProductTool = createLoggedTool({
   id: "delete-product",
   description:
     "Permanently delete a product and its variants. Admin only. Prefer deactivating a product with update-product unless permanent deletion is explicitly requested.",
@@ -274,7 +269,6 @@ export const deleteProductTool = createTool({
   outputSchema: successSchema,
   requestContextSchema,
   execute: async ({ id }, { requestContext, observe }) => {
-    logToolStart("delete-product", observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     await store.products.delete(id);

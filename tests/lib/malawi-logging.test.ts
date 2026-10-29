@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MASTRA_RESOURCE_ID_KEY } from '@mastra/core/request-context';
+import { z } from 'zod';
 import {
   OBSERVABILITY_REQUEST_CONTEXT_KEYS,
+  createLoggedTool,
   logToolStart,
   toolLogContext,
 } from '../../src/mastra/lib/malawi-logging';
@@ -58,5 +60,33 @@ describe('tool observability logging', () => {
     expect(() =>
       logToolStart('list-products', undefined, context()),
     ).not.toThrow();
+  });
+
+  it('logs validated, request, success, and failure stages with redaction', async () => {
+    const observe = { log: vi.fn() };
+    const tool = createLoggedTool({
+      id: 'logging-fixture',
+      description: 'logging fixture',
+      inputSchema: z.object({ token: z.string(), value: z.string() }),
+      outputSchema: z.object({ ok: z.boolean() }),
+      execute: async () => ({ ok: true }),
+    });
+
+    await tool.execute?.(
+      { token: 'do-not-log', value: 'visible' },
+      { observe, requestContext: context() } as any,
+    );
+
+    const events = observe.log.mock.calls.map(([, event]) => event);
+    expect(events).toEqual([
+      'tool.started',
+      'tool.validated',
+      'tool.request.started',
+      'tool.request.completed',
+      'tool.succeeded',
+    ]);
+    expect(observe.log.mock.calls[0][2]).toMatchObject({
+      input: { token: '[REDACTED]', value: 'visible' },
+    });
   });
 });

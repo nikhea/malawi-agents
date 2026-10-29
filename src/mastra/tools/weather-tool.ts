@@ -1,4 +1,4 @@
-import { createTool } from '@mastra/core/tools';
+import { createLoggedTool } from '../lib/malawi-logging';
 import { z } from 'zod';
 import { cleanInputObject } from '../lib/malawi-input';
 
@@ -21,7 +21,7 @@ interface WeatherResponse {
   };
 }
 
-export const weatherTool = createTool({
+export const weatherTool = createLoggedTool({
   id: 'get-weather',
   description: 'Get current weather for a location',
   inputSchema: cleanInputObject({
