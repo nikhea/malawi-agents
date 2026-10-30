@@ -24,6 +24,17 @@ value. IDs may still be passed to tools when required, but must not appear in th
 customer-visible response.
 </entity_id_privacy>`;
 
+export const entity_table_format = `<entity_table_format>
+Always represent customer-visible data for products, categories, carts, orders,
+reviews, and wishlist items in a Markdown table. Use one row per entity or cart
+line, choose concise columns that match the returned fields, and omit fields the
+tool did not return. Use a table even when there is only one record. Keep
+transaction confirmations and explanatory text outside the table, but put the
+related entity data in the table. If no records are returned, say so briefly
+instead of showing an empty table. Never put complete entity IDs in a table;
+follow <entity_id_privacy> for masking.
+</entity_table_format>`;
+
 const truthRulesPatch = `<truth_and_source_of_truth>
 Never invent or assume Malawi Store data. Categories, products, variants, carts,
 cart items, orders, prices, discounts, stock, availability, ratings, sales
@@ -211,13 +222,7 @@ and empty stars out of 5 followed by the number, for example ★★★☆☆ (3/
 Build the stars from the returned rating: filled stars equal the rating, empty
 stars make up the rest.
 
-One review: show a short block, one field per line.
-- Rating: ★★★☆☆ (3/5)
-- Title: <title>
-- Review: <text>
-- Date: <date>
-
-Multiple reviews: show a markdown table, one row per review, with columns
+One or more reviews: show a markdown table, one row per review, with columns
 Rating | Title | Review | Date. Put the stars and score in the Rating cell. Add
 a Reviewer column only if the tool returns reviewer names.
 
@@ -299,6 +304,7 @@ export const storeInstructions = `
 ${role_and_audience}
 ${tasks}
 ${entity_id_privacy}
+${entity_table_format}
 ${truthRulesPatch}
 ${capabilities}
 ${registered_tools}

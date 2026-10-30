@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   entity_id_privacy,
+  entity_table_format,
   registered_tools,
   storeInstructions,
   tool_registry,
@@ -33,6 +34,15 @@ describe('store agent truth and working-memory instructions', () => {
     expect(storeInstructions).toContain('<entity_id_privacy>');
     expect(storeInstructions).toContain('Include only a short masked order reference');
     expect(storeInstructions).toContain('even if the customer asks');
+  });
+
+  it('requires store entity data to use markdown tables', () => {
+    expect(entity_table_format).toContain('Always represent customer-visible data');
+    expect(entity_table_format).toContain('products, categories, carts, orders');
+    expect(entity_table_format).toContain('reviews, and wishlist items');
+    expect(entity_table_format).toContain('Use a table even when there is only one record');
+    expect(entity_table_format).toContain('Never put complete entity IDs in a table');
+    expect(storeInstructions).toContain('<entity_table_format>');
   });
 
   it('registers all tool names and IDs in a dedicated variable and includes them in storeInstructions', () => {
