@@ -5,6 +5,7 @@ import {
   blankToUndefined,
   cleanInputObject,
   compactPayload,
+  listRows,
 } from '../lib/malawi-input';
 import { createMalawiStore } from '../lib/malawi-store';
 import { successSchema, variantSchema } from '../lib/malawi-schemas';
@@ -22,7 +23,8 @@ export const listVariantsTool = createLoggedTool({
   requestContextSchema,
   execute: async ({ productId }, { requestContext, observe }) => {
     const store = createMalawiStore(requestContext);
-    return store.variants.list(productId);
+    const result = await store.variants.list(productId);
+    return listRows(result, 'variants');
   },
 });
 

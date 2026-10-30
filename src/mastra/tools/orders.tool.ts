@@ -5,6 +5,7 @@ import {
   blankToUndefined,
   cleanInputObject,
   compactPayload,
+  listRows,
 } from '../lib/malawi-input';
 import { createMalawiStore } from '../lib/malawi-store';
 import { orderSchema } from '../lib/malawi-schemas';
@@ -97,7 +98,7 @@ export const listOrdersTool = createLoggedTool({
     { requestContext, observe },
   ) => {
     const store = createMalawiStore(requestContext);
-    return store.orders.list(
+    const result = await store.orders.listPage(
       compactPayload({
         status,
         currency,
@@ -111,6 +112,7 @@ export const listOrdersTool = createLoggedTool({
         offset,
       }),
     );
+    return listRows(result, 'orders');
   },
 });
 

@@ -6,6 +6,7 @@ import {
   cleanInputObject,
   cleanInputSchema,
   compactPayload,
+  listRows,
 } from "../lib/malawi-input";
 import { createMalawiStore } from "../lib/malawi-store";
 import {
@@ -122,7 +123,7 @@ export const listProductsTool = createLoggedTool({
     { requestContext, observe },
   ) => {
     const store = createMalawiStore(requestContext);
-    return store.products.list(
+    const result = await store.products.listPage(
       compactPayload({
         q: query,
         category_id: categoryId,
@@ -141,6 +142,7 @@ export const listProductsTool = createLoggedTool({
         sort,
       }),
     );
+    return listRows(result, "products");
   },
 });
 

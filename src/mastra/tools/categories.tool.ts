@@ -6,6 +6,7 @@ import {
   cleanInputObject,
   cleanInputSchema,
   compactPayload,
+  listRows,
 } from '../lib/malawi-input';
 import { createMalawiStore } from '../lib/malawi-store';
 import { categorySchema, successSchema } from '../lib/malawi-schemas';
@@ -13,8 +14,12 @@ import { categorySchema, successSchema } from '../lib/malawi-schemas';
 const requestContextSchema = malawiContextSchema;
 
 function categoryModelOutput(
-  categories: Array<z.infer<typeof categorySchema>>,
+  result: unknown,
 ) {
+  const categories = listRows<z.infer<typeof categorySchema>>(
+    result,
+    'categories',
+  );
   return {
     type: 'content' as const,
     value: [
@@ -92,7 +97,7 @@ export const listCategoriesTool = createLoggedTool({
     { requestContext, observe },
   ) => {
     const store = createMalawiStore(requestContext);
-    return store.categories.list(
+    const result = await store.categories.listPage(
       compactPayload({
         q: query,
         parent_id: parentId,
@@ -104,6 +109,7 @@ export const listCategoriesTool = createLoggedTool({
         offset,
       }),
     );
+    return listRows(result, 'categories');
   },
 });
 

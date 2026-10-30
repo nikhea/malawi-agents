@@ -5,6 +5,7 @@ import {
   blankToUndefined,
   cleanInputObject,
   compactPayload,
+  listRows,
 } from '../lib/malawi-input';
 import { createMalawiStore } from '../lib/malawi-store';
 import {
@@ -63,7 +64,7 @@ export const listWishlistTool = createLoggedTool({
     { requestContext, observe },
   ) => {
     const store = createMalawiStore(requestContext);
-    return store.wishlist.list(
+    const result = await store.wishlist.listPage(
       compactPayload({
         q: query,
         category_id: categoryId,
@@ -73,6 +74,7 @@ export const listWishlistTool = createLoggedTool({
         offset,
       }),
     );
+    return listRows(result, 'wishlist');
   },
 });
 
