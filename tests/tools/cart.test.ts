@@ -36,6 +36,32 @@ describe('getCartTool', () => {
     expect(calls[0].url).toBe(apiUrl('/cart'));
     expect(authorizationOf(calls[0].init)).toBe('Bearer access-token');
   });
+
+  it('forwards filter and pagination parameters to the cart query', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: cart }));
+
+    const result = await executeTool(
+      getCartTool,
+      {
+        query: 'oil',
+        productId: 'prod-1',
+        variantId: 'var-1',
+        sort: 'price_desc',
+        page: 2,
+        limit: 12,
+        offset: 12,
+      },
+      context(),
+    );
+
+    expect(result).toEqual(cart);
+    expectValidOutput(getCartTool.outputSchema, result);
+    expect(calls[0].url).toBe(
+      apiUrl(
+        '/cart?q=oil&product_id=prod-1&variant_id=var-1&sort=price_desc&page=2&limit=12&offset=12',
+      ),
+    );
+  });
 });
 
 describe('addCartItemTool', () => {

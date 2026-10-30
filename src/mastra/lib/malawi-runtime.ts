@@ -1,14 +1,16 @@
-import { PinoLogger } from '@mastra/loggers';
-import { DuckDBStore } from '@mastra/duckdb';
-import { PostgresStore } from '@mastra/pg';
-import { RedisStreamsPubSub } from '@mastra/redis-streams';
-import { MastraCompositeStore } from '@mastra/core/storage';
+import { PinoLogger } from "@mastra/loggers";
+import { DuckDBStore } from "@mastra/duckdb";
+import { PostgresStore } from "@mastra/pg";
+import { RedisStreamsPubSub } from "@mastra/redis-streams";
+import { RedisServerCache } from "@mastra/redis";
+import Redis from "ioredis";
+import { MastraCompositeStore } from "@mastra/core/storage";
 import {
   MastraPlatformExporter,
   MastraStorageExporter,
   Observability,
   SensitiveDataFilter,
-} from '@mastra/observability';
+} from "@mastra/observability";
 import {
   duckdbMemoryLimit,
   duckdbPath,
@@ -18,17 +20,17 @@ import {
   redisPubSubKeyPrefix,
   redisStreamIdleTtlMs,
   redisUrl,
-} from './malawi-config';
-import { OBSERVABILITY_REQUEST_CONTEXT_KEYS } from './malawi-logging';
+} from "./malawi-config";
+import { OBSERVABILITY_REQUEST_CONTEXT_KEYS } from "./malawi-logging";
 
 /** Application logger used by Mastra, exporters, and the Redis pub/sub backend. */
 export function createMastraLogger(
   env: NodeJS.ProcessEnv = process.env,
 ): PinoLogger {
   return new PinoLogger({
-    name: 'Mastra',
+    name: "Mastra",
     level: mastraLogLevel(env.MASTRA_LOG_LEVEL),
-    prettyPrint: env.NODE_ENV !== 'production',
+    prettyPrint: env.NODE_ENV !== "production",
   });
 }
 
@@ -41,15 +43,15 @@ export async function createMastraStorage(
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<MastraCompositeStore> {
   const duckdb = new DuckDBStore({
-    id: 'mastra-observability',
+    id: "mastra-observability",
     path: duckdbPath(env),
     memoryLimit: duckdbMemoryLimit(env),
   });
 
   return new MastraCompositeStore({
-    id: 'composite-storage',
+    id: "composite-storage",
     default: new PostgresStore({
-      id: 'mastra-storage',
+      id: "mastra-storage",
       connectionString: mastraDatabaseUrl(env),
     }),
     domains: {
@@ -65,10 +67,12 @@ export async function createMastraStorage(
  * and `logging.level: 'info'` persists tool logs to the DuckDB observability
  * store. The storage exporter writes traces to the same store.
  */
-export function createMastraObservability(options: {
-  logger?: PinoLogger;
-  env?: NodeJS.ProcessEnv;
-} = {}): Observability {
+export function createMastraObservability(
+  options: {
+    logger?: PinoLogger;
+    env?: NodeJS.ProcessEnv;
+  } = {},
+): Observability {
   const env = options.env ?? process.env;
 
   return new Observability({
@@ -76,32 +80,32 @@ export function createMastraObservability(options: {
       default: {
         serviceName: observabilityServiceName(env),
         requestContextKeys: [...OBSERVABILITY_REQUEST_CONTEXT_KEYS],
-        logging: { enabled: true, level: 'info' },
+        logging: { enabled: true, level: "info" },
         exporters: [
           new MastraStorageExporter({ logger: options.logger }),
           new MastraPlatformExporter({ logger: options.logger }),
         ],
-        spanOutputProcessors: [
-          new SensitiveDataFilter(),
-        ],
+        spanOutputProcessors: [new SensitiveDataFilter()],
       },
     },
   });
 }
 
 /** Distributed event bus backed by Redis Streams. */
-export function createRedisPubSub(options: {
-  logger?: PinoLogger;
-  env?: NodeJS.ProcessEnv;
-} = {}): RedisStreamsPubSub {
+export function createRedisPubSub(
+  options: {
+    logger?: PinoLogger;
+    env?: NodeJS.ProcessEnv;
+  } = {},
+): RedisStreamsPubSub {
   const env = options.env ?? process.env;
 
   const logger = options.logger
     ? {
         debug: (...args: unknown[]) =>
-          options.logger?.debug(args.map(String).join(' ')),
+          options.logger?.debug(args.map(String).join(" ")),
         warn: (...args: unknown[]) =>
-          options.logger?.warn(args.map(String).join(' ')),
+          options.logger?.warn(args.map(String).join(" ")),
       }
     : undefined;
 
@@ -112,3 +116,7 @@ export function createRedisPubSub(options: {
     logger,
   });
 }
+
+export const redisCache = new RedisServerCache({
+  client: new Redis("redis://localhost:6379"),
+});

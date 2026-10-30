@@ -142,6 +142,15 @@ export const reviewSummary: ReviewSummary = {
   average: 5,
   count: 1,
   reviews: [review],
+  meta: {
+    page: 1,
+    limit: 12,
+    offset: 0,
+    total: 1,
+    total_pages: 1,
+    has_next: false,
+    has_prev: false,
+  },
 };
 
 export const user: User = {

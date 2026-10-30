@@ -6,7 +6,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^26.6.5",
-    "mastra": "^1.35.0",
+    "mastra": "^1.36.0",
     "vitest": "^4"
   },
   "peerDependencies": {
@@ -24,22 +24,26 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@malawistore/store-sdk": "^0.1.0",
+    "@ai-sdk/typesafe-ai": "^3.0.29",
+    "@chat-adapter/slack": "^4.43.0",
+    "@malawistore/store-sdk": "0.1.3",
     "@mastra/ai-sdk": "^1.11.2",
-    "@mastra/core": "^1.79.0",
-    "@mastra/duckdb": "^1.15.0",
-    "@mastra/editor": "^0.16.4",
-    "@mastra/evals": "^1.10.8",
-    "@mastra/libsql": "^1.27.0",
-    "@mastra/loggers": "^1.3.9",
-    "@mastra/mcp": "^2.5.0",
-    "@mastra/memory": "^1.39.0",
-    "@mastra/observability": "^1.21.0",
-    "@mastra/pg": "^1.32.0",
-    "@mastra/rag": "^2.7.0",
-    "@mastra/redis": "^1.4.11",
-    "@mastra/redis-streams": "^0.6.4",
+    "@mastra/core": "^1.80.0",
+    "@mastra/duckdb": "^1.16.0",
+    "@mastra/editor": "^0.16.5",
+    "@mastra/evals": "^1.10.9",
+    "@mastra/libsql": "^1.27.1",
+    "@mastra/loggers": "^1.3.10",
+    "@mastra/mcp": "^2.6.0",
+    "@mastra/memory": "^1.39.1",
+    "@mastra/observability": "^1.22.0",
+    "@mastra/pg": "^1.33.0",
+    "@mastra/quickjs": "^0.1.5",
+    "@mastra/rag": "^2.7.1",
+    "@mastra/redis": "^1.4.12",
+    "@mastra/redis-streams": "^0.7.0",
     "ai": "^7.0.155",
+    "ioredis": "^6.0.0",
     "zod": "^4"
   }
 }

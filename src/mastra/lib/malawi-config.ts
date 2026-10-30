@@ -38,6 +38,19 @@ export function mastraLogLevel(value?: string): MastraLogLevel {
     : 'info';
 }
 
+/**
+ * Language model used by Mastra's LLM-backed guardrail processors.
+ * Keep this separate from the native SystemOne decision model used by the
+ * typed store classifiers.
+ */
+export function llmGuardrailModel(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  return (
+    firstNonEmpty(env.LLM_GUARDRAIL_MODEL) ?? "ollama-cloud/gpt-oss:20b"
+  );
+}
+
 /** DuckDB file used for traces, logs, metrics, scores, and feedback. */
 export function duckdbPath(env: NodeJS.ProcessEnv = process.env): string {
   return firstNonEmpty(env.DUCKDB_PATH) ?? 'mastra.duckdb';

@@ -18,7 +18,7 @@ Your primary function is to help users get weather details for specific location
 - If the user asks for activities, respond in the format they request.
 
 Use the weatherTool to fetch current weather data.`,
-  model: 'groq/llama-3.3-70b-versatile',
+  model: 'groq/openai/gpt-oss-120b',
   tools: { weatherTool },
   scorers: {
     toolCallAppropriateness: {
@@ -35,13 +35,13 @@ Use the weatherTool to fetch current weather data.`,
         rate: 1,
       },
     },
-    translation: {
-      scorer: scorers.translationScorer,
-      sampling: {
-        type: 'ratio',
-        rate: 1,
-      },
-    },
+    // translation: {
+    //   scorer: scorers.translationScorer,
+    //   sampling: {
+    //     type: 'ratio',
+    //     rate: 1,
+    //   },
+    // },
   },
   memory: new Memory(),
 });

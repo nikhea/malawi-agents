@@ -24,6 +24,36 @@ beforeEach(() => {
 });
 
 describe('listProductsTool', () => {
+  it('forwards catalog filters and page-based sorting', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: [product] }));
+
+    await executeTool(
+      listProductsTool,
+      {
+        categorySlug: 'dresses',
+        minPriceCents: 10000,
+        maxPriceCents: 90000,
+        inStock: true,
+        size: 'XL',
+        minRating: 4,
+        createdAfter: '2026-01-01',
+        createdBefore: '2026-10-01',
+        activeOnly: true,
+        page: 2,
+        limit: 10,
+        offset: 5,
+        sort: 'price_desc',
+      },
+      context(),
+    );
+
+    expect(calls[0].url).toBe(
+      apiUrl(
+        '/products?category_slug=dresses&min_price_cents=10000&max_price_cents=90000&in_stock=true&size=XL&min_rating=4&created_after=2026-01-01&created_before=2026-10-01&active_only=true&sort=price_desc&page=2&limit=10&offset=5',
+      ),
+    );
+  });
+
   it('lists products with filters and the caller token', async () => {
     const { calls } = stubFetch(() => jsonResponse({ data: [product] }));
 
@@ -42,18 +72,34 @@ describe('listProductsTool', () => {
     expect(calls[0].init.method).toBe('GET');
   });
 
+  it('searches by text with the query parameter', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: [product] }));
+
+    const result = await executeTool(
+      listProductsTool,
+      { query: 'dress', activeOnly: true, limit: 5 },
+      context(),
+    );
+
+    expect(result).toEqual([product]);
+    expectValidOutput(listProductsTool.outputSchema, result);
+    expect(calls[0].url).toBe(
+      apiUrl('/products?q=dress&active_only=true&limit=5'),
+    );
+  });
+
   it('omits blank optional filters from the request', async () => {
     const { calls } = stubFetch(() => jsonResponse({ data: [] }));
 
     const result = await executeTool(
       listProductsTool,
-      { categoryId: '', activeOnly: true },
+      { query: '', categoryId: '', activeOnly: true },
       context(),
     );
 
     expect(result).toEqual([]);
     expectValidOutput(listProductsTool.outputSchema, result);
-    expect(calls[0].url).toBe(apiUrl('/products?active_only=true'));
+    expect(calls[0].url).toBe(apiUrl('/products?active_only=true&limit=5'));
   });
 
   it('logs a structured start event with the authenticated user', async () => {
@@ -95,6 +141,32 @@ describe('getProductTool', () => {
     );
 
     expectValidOutput(getProductTool.outputSchema, result);
+    expect(calls[0].url).toBe(
+      apiUrl('/products/slug/sunseed-cooking-oil-2l'),
+    );
+  });
+
+  it('accepts productId as an alias for id', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: productDetail }));
+
+    await executeTool(
+      getProductTool,
+      { productId: 'prod-1' },
+      context(),
+    );
+
+    expect(calls[0].url).toBe(apiUrl('/products/prod-1'));
+  });
+
+  it('accepts null placeholders for unused lookup fields', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: productDetail }));
+
+    await executeTool(
+      getProductTool,
+      { slug: 'sunseed-cooking-oil-2l', id: null, productId: null },
+      context(),
+    );
+
     expect(calls[0].url).toBe(
       apiUrl('/products/slug/sunseed-cooking-oil-2l'),
     );

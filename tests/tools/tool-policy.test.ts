@@ -31,6 +31,7 @@ const mutationToolIds = new Set([
   'clear-cart',
   'confirm-stock',
   'create-category',
+  'create-checkout-session',
   'create-payment-intent',
   'create-product',
   'create-review',
@@ -57,7 +58,7 @@ describe('tool approval policy', () => {
   it('requires approval for every mutating tool and only those tools', () => {
     const tools = Object.values(allTools);
 
-    expect(tools).toHaveLength(40);
+    expect(tools).toHaveLength(41);
 
     for (const tool of tools) {
       const shouldRequireApproval = mutationToolIds.has(tool.id);

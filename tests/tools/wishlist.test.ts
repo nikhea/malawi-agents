@@ -35,6 +35,31 @@ describe('listWishlistTool', () => {
     expect(calls[0].url).toBe(apiUrl('/wishlist'));
     expect(authorizationOf(calls[0].init)).toBe('Bearer access-token');
   });
+
+  it('forwards filter and pagination parameters to the wishlist query', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: [wishlistItem] }));
+
+    const result = await executeTool(
+      listWishlistTool,
+      {
+        query: 'oil',
+        categoryId: 'cat-1',
+        sort: 'price_asc',
+        page: 2,
+        limit: 12,
+        offset: 12,
+      },
+      context(),
+    );
+
+    expect(result).toEqual([wishlistItem]);
+    expectValidOutput(listWishlistTool.outputSchema, result);
+    expect(calls[0].url).toBe(
+      apiUrl(
+        '/wishlist?q=oil&category_id=cat-1&sort=price_asc&page=2&limit=12&offset=12',
+      ),
+    );
+  });
 });
 
 describe('addToWishlistTool', () => {

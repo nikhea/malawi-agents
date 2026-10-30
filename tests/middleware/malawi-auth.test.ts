@@ -49,6 +49,10 @@ function nextMock(): Next {
 
 beforeEach(() => {
   vi.stubEnv('MALAWI_API_BASE_URL', TEST_BASE_URL);
+  // Keep the developer's .env from changing middleware behaviour.
+  vi.stubEnv('MALAWI_TOKEN', '');
+  vi.stubEnv('MALAWI_REFRESH_TOKEN', '');
+  vi.stubEnv('NODE_ENV', 'test');
 });
 
 describe('malawiAuthMiddleware', () => {
@@ -160,6 +164,39 @@ describe('malawiAuthMiddleware', () => {
     expect(requestContext.get('refreshToken')).toBe('refresh-token');
     expect(requestContext.getRaw(MASTRA_RESOURCE_ID_KEY)).toBe(user.id);
     expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to MALAWI_TOKEN when no header is present in development', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('MALAWI_TOKEN', 'dev-token');
+    vi.stubEnv('MALAWI_REFRESH_TOKEN', 'dev-refresh');
+    const { calls } = stubFetch(() => jsonResponse({ data: user }));
+    const { context, requestContext } = fakeContext();
+    const next = nextMock();
+
+    const response = await malawiAuthMiddleware(context, next);
+
+    expect(response).toBeUndefined();
+    expect(calls[0].url).toBe(`${TEST_BASE_URL}/users/me`);
+    expect(authorizationOf(calls[0].init)).toBe('Bearer dev-token');
+    expect(requestContext.get('userId')).toBe(user.id);
+    expect(requestContext.get('accessToken')).toBe('dev-token');
+    expect(requestContext.get('refreshToken')).toBe('dev-refresh');
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores the MALAWI_TOKEN fallback in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('MALAWI_TOKEN', 'dev-token');
+    const fetchMock = stubFetch();
+    const { context } = fakeContext();
+    const next = nextMock();
+
+    const response = await malawiAuthMiddleware(context, next);
+
+    expect(response?.status).toBe(401);
+    expect(fetchMock.calls).toHaveLength(0);
+    expect(next).not.toHaveBeenCalled();
   });
 
   it('lets CORS preflight requests through without authentication', async () => {

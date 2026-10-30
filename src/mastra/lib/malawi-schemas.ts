@@ -114,6 +114,13 @@ export const paymentSchema = z.object({
   created_at: z.string(),
 });
 
+export const checkoutSessionSchema = z.object({
+  id: z.string(),
+  order_id: z.string(),
+  url: z.string().url(),
+  expires_at: z.number().int(),
+});
+
 export const wishlistProductSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -140,10 +147,21 @@ export const reviewSchema = z.object({
   created_at: z.string(),
 });
 
+export const paginationMetaSchema = z.object({
+  page: z.number().int(),
+  limit: z.number().int(),
+  offset: z.number().int(),
+  total: z.number().int(),
+  total_pages: z.number().int(),
+  has_next: z.boolean(),
+  has_prev: z.boolean(),
+});
+
 export const reviewSummarySchema = z.object({
   average: z.number(),
   count: z.number().int(),
   reviews: z.array(reviewSchema),
+  meta: paginationMetaSchema.optional(),
 });
 
 export const userSchema = z.object({

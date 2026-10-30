@@ -1,8 +1,11 @@
-import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { createLoggedTool } from '../lib/malawi-logging';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
-import { compactPayload } from '../lib/malawi-input';
-import { logToolStart } from '../lib/malawi-logging';
+import {
+  blankToUndefined,
+  cleanInputObject,
+  compactPayload,
+} from '../lib/malawi-input';
 import { createMalawiStore } from '../lib/malawi-store';
 import { statusResponseSchema, stockSchema } from '../lib/malawi-schemas';
 
@@ -10,22 +13,21 @@ const requestContextSchema = malawiContextSchema;
 
 const stockLineSchema = z.object({
   productId: z.string().describe('Product ID'),
-  variantId: z.string().optional().describe('Variant ID for a specific SKU'),
+  variantId: z.preprocess(blankToUndefined, z.string().optional()).describe('Variant ID for a specific SKU'),
   qty: z.number().int().min(1).describe('Quantity to hold'),
 });
 
-export const getStockTool = createTool({
+export const getStockTool = createLoggedTool({
   id: 'get-stock',
   description:
     'Read on-hand, reserved, and available stock for a product or variant. Admin only.',
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     productId: z.string().describe('Product ID'),
-    variantId: z.string().optional().describe('Variant ID for a specific SKU'),
+    variantId: z.preprocess(blankToUndefined, z.string().optional()).describe('Variant ID for a specific SKU'),
   }),
   outputSchema: stockSchema,
   requestContextSchema,
   execute: async ({ productId, variantId }, { requestContext, observe }) => {
-    logToolStart('get-stock', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.inventory.getStock(
@@ -37,20 +39,19 @@ export const getStockTool = createTool({
   },
 });
 
-export const setStockTool = createTool({
+export const setStockTool = createLoggedTool({
   id: 'set-stock',
   description:
     'Set the on-hand stock quantity for a product or variant (restocking). Admin only.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     productId: z.string().describe('Product ID'),
-    variantId: z.string().optional().describe('Variant ID for a specific SKU'),
+    variantId: z.preprocess(blankToUndefined, z.string().optional()).describe('Variant ID for a specific SKU'),
     qty: z.number().int().min(0).describe('New on-hand quantity'),
   }),
   outputSchema: stockSchema,
   requestContextSchema,
   execute: async ({ productId, variantId, qty }, { requestContext, observe }) => {
-    logToolStart('set-stock', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.inventory.setStock(
@@ -63,12 +64,12 @@ export const setStockTool = createTool({
   },
 });
 
-export const reserveStockTool = createTool({
+export const reserveStockTool = createLoggedTool({
   id: 'reserve-stock',
   description:
     'Atomically hold stock for an order reference. Admin only. One short line fails the whole reservation.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     orderRef: z.string().describe('Order reference to reserve stock for'),
     lines: z.array(stockLineSchema).min(1).describe('Stock lines to hold'),
     ttlSeconds: z
@@ -81,7 +82,6 @@ export const reserveStockTool = createTool({
   outputSchema: statusResponseSchema,
   requestContextSchema,
   execute: async ({ orderRef, lines, ttlSeconds }, { requestContext, observe }) => {
-    logToolStart('reserve-stock', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.inventory.reserve(
@@ -98,36 +98,34 @@ export const reserveStockTool = createTool({
   },
 });
 
-export const releaseStockTool = createTool({
+export const releaseStockTool = createLoggedTool({
   id: 'release-stock',
   description:
     'Release a stock hold for an order reference. Admin only. This operation is idempotent.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     orderRef: z.string().describe('Order reference whose hold should be released'),
   }),
   outputSchema: statusResponseSchema,
   requestContextSchema,
   execute: async ({ orderRef }, { requestContext, observe }) => {
-    logToolStart('release-stock', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.inventory.release(orderRef);
   },
 });
 
-export const confirmStockTool = createTool({
+export const confirmStockTool = createLoggedTool({
   id: 'confirm-stock',
   description:
     'Convert a stock hold into sales for an order reference. Admin only. This operation is idempotent.',
   requireApproval: true,
-  inputSchema: z.object({
+  inputSchema: cleanInputObject({
     orderRef: z.string().describe('Order reference whose hold should be confirmed'),
   }),
   outputSchema: statusResponseSchema,
   requestContextSchema,
   execute: async ({ orderRef }, { requestContext, observe }) => {
-    logToolStart('confirm-stock', observe, requestContext);
     requireAdmin(requestContext);
     const store = createMalawiStore(requestContext);
     return store.inventory.confirm(orderRef);
