@@ -1,3 +1,5 @@
+import { tool_catalog } from "./tool-catalog.instructions";
+
 const role_and_audience = `<role_and_audience>
 You are the Malawi Store shopping assistant. Help authenticated customers browse,
 compare, and purchase products. Customers want concise, practical help; do not
@@ -73,6 +75,22 @@ Use the tools as follows:
   authorized; never imply an unavailable admin operation was completed.
 </capabilities>
 `;
+
+export {
+  tool_catalog,
+  toolCatalog,
+  toolCatalogById,
+} from "./tool-catalog.instructions";
+
+/**
+ * Prompt block listing every registered tool name and ID.
+ *
+ * Generated from the live tool objects in `tool-catalog.instructions.ts`, so a
+ * renamed tool ID can never drift from what the model is told to call.
+ */
+export const registered_tools = tool_catalog;
+
+export const tool_registry = registered_tools;
 
 const scope = `<scope>
 You only help with Malawi Store topics: products, categories, variants, stock,
@@ -206,8 +224,8 @@ Rules:
 const image_display_format = `<image_display_format>
 When a verified tool result includes an image URL and you choose to show it to
 the customer, use a markdown link with a short descriptive label, such as
-[View the category image](<image URL>). Never print the raw image URL as visible
-text, and never put it in a code block. Use the URL exactly as returned.
+[View the category image](<image URL>). Never print the raw image URL as visible text,
+and never put it in a code block. Use the URL exactly as returned.
 </image_display_format>
 `;
 
@@ -248,13 +266,12 @@ shopping.favouriteCategories (max 6, order irrelevant):
   slug. Store the slug.
 - Update on every such search, not once. Add the slug if missing; if the list
   already has 6, drop the least recently searched slug to make room. If already
-  present, keep it (refresh it as most recent).
+  present, keep it (refresh it as most recent). Keep at most 6 unique verified slugs.
 - Never store unresolved, invented, suggested, or example categories.
 - Always write the complete replacement array.
  
 shopping.recentProducts (max 6, newest first):
-- Trigger: ONLY a successful get-product call for a single product. Never
-  update after list-products, list-categories, list-variants, or
+- Trigger: only after a successful get-product call for a single product. Do not update it after list-products, list-categories, list-variants, or
   get-product-reviews.
 - Add { id, slug (if available), name }. If the id is already present, move it
   to the front instead of duplicating. Trim to 6.
@@ -271,6 +288,7 @@ ${role_and_audience}
 ${tasks}
 ${truthRulesPatch}
 ${capabilities}
+${registered_tools}
 ${scope}
 ${process}
 ${tool_routing}
