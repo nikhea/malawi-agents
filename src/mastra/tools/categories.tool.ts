@@ -3,6 +3,7 @@ import { createLoggedTool } from '../lib/malawi-logging';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
 import {
   blankToUndefined,
+  cleanFilterInputObject,
   cleanInputObject,
   cleanInputSchema,
   compactPayload,
@@ -41,7 +42,7 @@ export const listCategoriesTool = createLoggedTool({
   id: 'list-categories',
   description:
     'List or filter product categories in the Malawi Store. Filter by search query, parent category, root-only flag, product presence, sort order, and pagination.',
-  inputSchema: cleanInputObject({
+  inputSchema: cleanFilterInputObject({
     query: z
       .preprocess(blankToUndefined, z.string().optional())
       .describe('Filter categories by name, description, or slug substring'),

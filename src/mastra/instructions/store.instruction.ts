@@ -78,6 +78,10 @@ State what could not be verified and provide the safest useful next step.
 When composing catalog Code Mode calls, respect the tool schemas exactly: omit
 the review limit or use a value of at least 1, never use limit 0, and preserve
 returned field names such as in_stock when formatting variant availability.
+
+When calling any read or search tool, omit optional filters the customer did not
+request. Never send empty strings or zero placeholders for omitted filters; send
+only the query and meaningful filters needed for the customer's request.
 </truth_and_source_of_truth>
 `;
 

@@ -3,6 +3,7 @@ import { createLoggedTool } from '../lib/malawi-logging';
 import { malawiContextSchema, requireAdmin } from '../lib/malawi-context';
 import {
   blankToUndefined,
+  cleanFilterInputObject,
   cleanInputObject,
   compactPayload,
 } from '../lib/malawi-input';
@@ -31,7 +32,7 @@ export const getProductReviewsTool = createLoggedTool({
   id: 'get-product-reviews',
   description:
     'Get the public review summary for a product: average rating, review count, and reviews. Filter reviews by text search, rating, sort order, and pagination.',
-  inputSchema: cleanInputObject({
+  inputSchema: cleanFilterInputObject({
     productId: z.string().describe('Product ID'),
     query: z
       .preprocess(blankToUndefined, z.string().optional())

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
+  cleanFilterInputObject,
   cleanInputObject,
   compactPayload,
 } from '../../src/mastra/lib/malawi-input';
@@ -68,5 +69,18 @@ describe('cleanInputObject', () => {
         ignored: 'not part of the schema',
       }),
     ).toEqual({ status: 'cancelled', active: false, offset: 0 });
+  });
+
+  it('removes zero sentinels from filter input without changing normal input cleanup', () => {
+    const schema = cleanFilterInputObject({
+      query: z.string().optional(),
+      minPriceCents: z.number().min(0).optional(),
+      offset: z.number().min(0).optional(),
+      active: z.boolean().optional(),
+    });
+
+    expect(
+      schema.parse({ query: 'bag', minPriceCents: 0, offset: 0, active: false }),
+    ).toEqual({ query: 'bag', active: false });
   });
 });

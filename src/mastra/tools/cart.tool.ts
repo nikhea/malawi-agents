@@ -3,6 +3,7 @@ import { createLoggedTool } from "../lib/malawi-logging";
 import { malawiContextSchema } from "../lib/malawi-context";
 import {
   blankToUndefined,
+  cleanFilterInputObject,
   cleanInputObject,
   compactPayload,
 } from "../lib/malawi-input";
@@ -15,7 +16,7 @@ export const getCartTool = createLoggedTool({
   id: "get-cart",
   description:
     "Get the authenticated customer's active cart, including line items and the subtotal in integer tambala. Filter items by search query, product, variant, sort order, or pagination.",
-  inputSchema: cleanInputObject({
+  inputSchema: cleanFilterInputObject({
     query: z
       .preprocess(blankToUndefined, z.string().optional())
       .describe("Filter cart items by product title or variant name substring"),
