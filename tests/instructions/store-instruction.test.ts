@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  entity_id_privacy,
   registered_tools,
   storeInstructions,
   tool_registry,
@@ -20,6 +21,18 @@ describe('store agent truth and working-memory instructions', () => {
     expect(storeInstructions).toContain('never use limit 0');
     expect(storeInstructions).toContain('returned field names such as in_stock');
     expect(storeInstructions).toContain('Never print the raw image URL as visible text');
+  });
+
+  it('prevents complete store entity IDs from appearing in customer responses', () => {
+    expect(entity_id_privacy).toContain('Never output a complete or raw identifier');
+    expect(entity_id_privacy).toContain('orders');
+    expect(entity_id_privacy).toContain('payments');
+    expect(entity_id_privacy).toContain('wishlist');
+    expect(entity_id_privacy).toContain('first 8 characters followed by an ellipsis');
+    expect(entity_id_privacy).toContain('customer-visible response');
+    expect(storeInstructions).toContain('<entity_id_privacy>');
+    expect(storeInstructions).toContain('Include only a short masked order reference');
+    expect(storeInstructions).toContain('even if the customer asks');
   });
 
   it('registers all tool names and IDs in a dedicated variable and includes them in storeInstructions', () => {
