@@ -7,7 +7,6 @@ import {
   TokenLimiter,
   UnicodeNormalizer,
 } from "@mastra/core/processors";
-import { storedAgentToolSearch } from "./store-agent-tools.processors";
 import { MAX_STEPS } from "../utils/constant.utils";
 import { EnsureFinalResponseProcessor } from "./ensure-final-response";
 import { llmGuardrailModel } from "../lib/malawi-config";
@@ -124,7 +123,6 @@ tokenCostControl.onViolation = ({ detail }: any) => {
 };
 
 export const storedAgentInputProcessors = [
-  storedAgentToolSearch,
   new UnicodeNormalizer({
     stripControlChars: true,
     collapseWhitespace: true,

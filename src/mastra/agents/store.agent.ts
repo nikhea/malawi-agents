@@ -1,9 +1,7 @@
 import { Agent } from "@mastra/core/agent";
-import { getProductTool, listProductsTool } from "../tools/products.tool";
 import { storeMemory } from "../memory/store.memory";
 import { storeInstructions } from "../instructions/store.instruction";
-import { getMeTool } from "../tools/users.tool";
-import { getCategoryTool, listCategoriesTool } from "../tools/categories.tool";
+import { storeAgentTools } from "../tools/store-toolset";
 import { storedAgentInputProcessors } from "../processors/store-agent-input.processor";
 import {
   storedAgentErrorProcessors,
@@ -18,16 +16,7 @@ export const storeAgent = new Agent({
   memory: storeMemory,
   instructions: storeInstructions,
   model: storedAgentModels,
-  tools: {
-    // user
-    getMeTool,
-    // products
-    listProductsTool,
-    getProductTool,
-    // categories
-    listCategoriesTool,
-    getCategoryTool,
-  },
+  tools: storeAgentTools,
   inputProcessors: storedAgentInputProcessors,
   outputProcessors: storedAgentOutProcessors,
   errorProcessors: storedAgentErrorProcessors,

@@ -8,6 +8,7 @@ import { wishlistTools } from "../tools/wishlist.tool";
 import { reviewsTools } from "../tools/reviews.tool";
 import { usersTools } from "../tools/users.tool";
 import { inventoryTools } from "../tools/inventory.tool";
+import { storeAgentTools } from "../tools/store-toolset";
 
 export interface ToolCatalogEntry {
   /** Human grouping used as a heading in the prompt. */
@@ -18,6 +19,8 @@ export interface ToolCatalogEntry {
   id: string;
   /** First sentence of the tool description. */
   description: string;
+  /** False when the tool is registered on `mastra` but not exposed to the agent. */
+  available: boolean;
 }
 
 /**
@@ -56,7 +59,15 @@ function firstSentence(text: string | undefined): string {
 }
 
 /**
- * Structured catalog: `{ group, name, id, description }` per tool.
+ * Tool IDs the agent actually exposes. Everything else in the registries is
+ * registered on `mastra` for direct API use only.
+ */
+const agentToolIds = new Set<string>(
+  Object.values(storeAgentTools).map((tool) => tool.id),
+);
+
+/**
+ * Structured catalog: `{ group, name, id, description, available }` per tool.
  *
  * Use this when you need tool metadata in code (tests, evals, docs). Use
  * `tool_catalog` for the prompt text.
@@ -68,6 +79,7 @@ export const toolCatalog: ToolCatalogEntry[] = toolGroups.flatMap(
       name,
       id: tool.id,
       description: firstSentence(tool.description),
+      available: agentToolIds.has(tool.id),
     })),
 );
 
@@ -81,7 +93,14 @@ function renderCatalog(): string {
     const entries = Object.entries(tools).map(([name, tool]) => {
       const description = firstSentence(tool.description);
       const header = `  * Tool Name: ${name} | Tool ID: ${tool.id}`;
-      return description ? `${header}\n    Description: ${description}` : header;
+      const lines = [header];
+      if (description) lines.push(`    Description: ${description}`);
+      if (!agentToolIds.has(tool.id)) {
+        lines.push(
+          "    Availability: admin only; not exposed to this agent, do not call it",
+        );
+      }
+      return lines.join("\n");
     });
 
     return `- ${group}:\n${entries.join("\n")}`;
@@ -91,10 +110,9 @@ function renderCatalog(): string {
 Available tools registered in the system with their Tool Name and Tool ID.
 
 Call a tool by its exact Tool ID, never by its Tool Name and never in CamelCase.
-A tool that is not in the current tool list is loaded on demand: call
-search_tools with a keyword first, then call the exact Tool ID from the results.
-If a call fails because a tool was not found, run search_tools and retry with
-the exact Tool ID instead of guessing another spelling.
+Every tool below is callable directly unless it is marked admin only. If a
+request needs an admin-only tool, tell the customer an administrator has to do
+it instead of calling the tool.
 
 ${sections.join("\n\n")}
 </registered_tools>`;
