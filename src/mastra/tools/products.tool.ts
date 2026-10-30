@@ -27,9 +27,11 @@ export const listProductsTool = createLoggedTool({
       .describe(
         'Full-text search over product name, description and slug (word prefixes, e.g. "cook" finds "cooking").',
       ),
-    categoryId: z.preprocess(blankToUndefined, z.string().optional())
+    categoryId: z
+      .preprocess(blankToUndefined, z.string().optional())
       .describe("Filter products by category ID"),
-    categorySlug: z.preprocess(blankToUndefined, z.string().optional())
+    categorySlug: z
+      .preprocess(blankToUndefined, z.string().optional())
       .describe("Filter products by category slug"),
     minPriceCents: z
       .number()
@@ -47,7 +49,8 @@ export const listProductsTool = createLoggedTool({
       .boolean()
       .optional()
       .describe("Set false to return only products that are out of stock"),
-    size: z.preprocess(blankToUndefined, z.string().optional())
+    size: z
+      .preprocess(blankToUndefined, z.string().optional())
       .describe("Filter by an active variant size, for example XS, M, or XL"),
     minRating: z
       .number()
@@ -55,9 +58,11 @@ export const listProductsTool = createLoggedTool({
       .max(5)
       .optional()
       .describe("Minimum average review rating from 0 to 5"),
-    createdAfter: z.preprocess(blankToUndefined, z.string().optional())
+    createdAfter: z
+      .preprocess(blankToUndefined, z.string().optional())
       .describe("Created at or after, as RFC3339 or YYYY-MM-DD"),
-    createdBefore: z.preprocess(blankToUndefined, z.string().optional())
+    createdBefore: z
+      .preprocess(blankToUndefined, z.string().optional())
       .describe("Created at or before, as RFC3339 or YYYY-MM-DD"),
     activeOnly: z
       .boolean()
@@ -142,6 +147,7 @@ export const listProductsTool = createLoggedTool({
         sort,
       }),
     );
+    console.log({ result });
     return listRows(result, "products");
   },
 });
@@ -151,21 +157,23 @@ export const getProductTool = createLoggedTool({
   description:
     "Get one product with its sellable variants by id, productId, or slug. Provide exactly one lookup value: id, productId, or slug.",
   inputSchema: cleanInputSchema(
-    z.object({
-      id: z
-        .preprocess(blankToUndefined, z.string().optional())
-        .describe("Product ID"),
-      productId: z
-        .preprocess(blankToUndefined, z.string().optional())
-        .describe("Product ID alias"),
-      slug: z
-        .preprocess(blankToUndefined, z.string().optional())
-        .describe("Product slug, for example sunseed-cooking-oil-2l"),
-    })
-    .refine(
-      ({ id, productId, slug }) => [id, productId, slug].filter(Boolean).length === 1,
-      "Provide exactly one of id, productId, or slug",
-    ),
+    z
+      .object({
+        id: z
+          .preprocess(blankToUndefined, z.string().optional())
+          .describe("Product ID"),
+        productId: z
+          .preprocess(blankToUndefined, z.string().optional())
+          .describe("Product ID alias"),
+        slug: z
+          .preprocess(blankToUndefined, z.string().optional())
+          .describe("Product slug, for example sunseed-cooking-oil-2l"),
+      })
+      .refine(
+        ({ id, productId, slug }) =>
+          [id, productId, slug].filter(Boolean).length === 1,
+        "Provide exactly one of id, productId, or slug",
+      ),
   ),
   outputSchema: productDetailSchema,
   requestContextSchema,
@@ -184,19 +192,27 @@ export const createProductTool = createLoggedTool({
   requireApproval: true,
   inputSchema: cleanInputObject({
     name: z.string().min(1).describe("Product name"),
-    categoryId: z.preprocess(blankToUndefined, z.string().optional())
+    categoryId: z
+      .preprocess(blankToUndefined, z.string().optional())
       .describe("Category ID to file the product under"),
-    slug: z.preprocess(blankToUndefined, z.string().optional())
+    slug: z
+      .preprocess(blankToUndefined, z.string().optional())
       .describe("URL slug. Generated from the name when omitted."),
-    description: z.preprocess(blankToUndefined, z.string().optional()).describe("Product description"),
+    description: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe("Product description"),
     priceCents: z
       .number()
       .int()
       .min(0)
       .optional()
       .describe("Price in integer tambala, for example 12500 for K125.00"),
-    currency: z.preprocess(blankToUndefined, z.string().optional()).describe("Currency code. Defaults to USD."),
-    imageUrl: z.preprocess(blankToUndefined, z.string().optional()).describe("Product image URL"),
+    currency: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe("Currency code. Defaults to USD."),
+    imageUrl: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe("Product image URL"),
   }),
   outputSchema: productSchema,
   requestContextSchema,
@@ -224,16 +240,24 @@ export const updateProductTool = createLoggedTool({
   requireApproval: true,
   inputSchema: cleanInputObject({
     id: z.string().describe("Product ID"),
-    categoryId: z.preprocess(blankToUndefined, z.string().optional()).describe("New category ID"),
-    name: z.preprocess(blankToUndefined, z.string().optional()).describe("New product name"),
-    description: z.preprocess(blankToUndefined, z.string().optional()).describe("New description"),
+    categoryId: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe("New category ID"),
+    name: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe("New product name"),
+    description: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe("New description"),
     priceCents: z
       .number()
       .int()
       .min(0)
       .optional()
       .describe("New price in integer tambala"),
-    currency: z.preprocess(blankToUndefined, z.string().optional()).describe("New currency code"),
+    currency: z
+      .preprocess(blankToUndefined, z.string().optional())
+      .describe("New currency code"),
     isActive: z.boolean().optional().describe("Whether the product is active"),
     clearCategory: z
       .boolean()

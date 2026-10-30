@@ -29,10 +29,7 @@ import {
 import { SimpleAuth } from "@mastra/core/server";
 import {
   storeInputClassifier,
-  storeInputAccessClassifier,
   storeOutputClassifier,
-  storeOutputPaymentClassifier,
-  storeOutputPrivacyClassifier,
 } from "./classifier/store-validate.classifier";
 // import { KNOWLEDGE_ROUTES } from "@mastra/server/server-adapter";
 
@@ -69,10 +66,10 @@ export const mastra = new Mastra({
   },
   classifiers: {
     storeInputClassifier,
-    storeInputAccessClassifier,
     storeOutputClassifier,
-    storeOutputPaymentClassifier,
-    storeOutputPrivacyClassifier,
+    // storeInputAccessClassifier,
+    // storeOutputPaymentClassifier,
+    // storeOutputPrivacyClassifier,
   },
   editor: new MastraEditor(),
 

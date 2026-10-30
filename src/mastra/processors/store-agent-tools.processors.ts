@@ -35,9 +35,13 @@ import {
   removeCartItemTool,
   setCartItemQtyTool,
 } from "../tools/cart.tool";
+import { getCategoryTool, listCategoriesTool } from "../tools/categories.tool";
 
 export const storedAgentToolSearch = new ToolSearchProcessor({
   tools: {
+    // categories
+    listCategoriesTool: listCategoriesTool as Tool<any, any>,
+    getCategoryTool: getCategoryTool as Tool<any, any>,
     // carts
     getCartTool: getCartTool as Tool<any, any>,
     addCartItemTool: addCartItemTool as Tool<any, any>,
@@ -69,5 +73,6 @@ export const storedAgentToolSearch = new ToolSearchProcessor({
     minScore: 0.1,
     autoLoad: true,
   },
+  injectCatalog: true,
   storage: "context",
 });

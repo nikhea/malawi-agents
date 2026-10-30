@@ -14,7 +14,16 @@ export const storeAgent = new Agent({
   id: "store-agent",
   name: "Store Agent",
   memory: storeMemory,
-  instructions: storeInstructions,
+  instructions: [
+    {
+      role: "system",
+      content: storeInstructions,
+    },
+    // {
+    //   role: "system",
+    //   content: catalogCodeMode.instructions,
+    // },
+  ],
   model: storedAgentModels,
   tools: storeAgentTools,
   inputProcessors: storedAgentInputProcessors,

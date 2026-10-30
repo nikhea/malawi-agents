@@ -1,4 +1,4 @@
-import { createTypeSafeAi } from "@ai-sdk/typesafe-ai";
+import { createTypeSafeAi, typeSafeAi } from "@ai-sdk/typesafe-ai";
 
 /**
  * Ollama exposes the TypeSafe-compatible decision API at /v1/systemone.
@@ -14,6 +14,7 @@ const typeSafe = createTypeSafeAi({
 });
 
 export const decisionModel = typeSafe.decisionModel(
-  process.env.OLLAMA_DECISION_MODEL ??
-    "hf.co/LiquidAI/d1-omni-600M-GGUF:BF16",
+  process.env.OLLAMA_DECISION_MODEL ?? "hf.co/LiquidAI/d1-omni-600M-GGUF:BF16",
 );
+
+export const jev = typeSafeAi.decisionModel("jev-latest");
