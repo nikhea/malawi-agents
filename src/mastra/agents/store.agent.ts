@@ -18,11 +18,7 @@ export const storeAgent = new Agent({
     {
       role: "system",
       content: storeInstructions,
-    },
-    // {
-    //   role: "system",
-    //   content: catalogCodeMode.instructions,
-    // },
+    }
   ],
   model: storedAgentModels,
   tools: storeAgentTools,

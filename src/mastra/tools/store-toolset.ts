@@ -79,7 +79,7 @@ export const storeAgentTools = byToolId([
   getOrderTool,
   cancelOrderTool,
   // payments
-  createPaymentIntentTool,
+  // createPaymentIntentTool,
   createCheckoutSessionTool,
   // wishlist
   listWishlistTool,
