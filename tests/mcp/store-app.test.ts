@@ -73,6 +73,133 @@ describe('Malawi Store MCP App', () => {
     expect(content.text).not.toContain('__MALAWI_STORE_PLACEHOLDER_IMAGE__');
   });
 
+  it('ships a self-contained host bridge with no remote script import', async () => {
+    const resource = await storeAppServer.readResource(STORE_APP_URI);
+    const html = resource.contents[0].text ?? '';
+
+    expect(html).not.toContain('cdn.jsdelivr.net');
+    expect(html).not.toContain('import { App }');
+    expect(html).toContain('ui/initialize');
+    expect(html).toContain('ui/notifications/tool-result');
+  });
+
+  it('renders the storefront without waiting for the host handshake', async () => {
+    const resource = await storeAppServer.readResource(STORE_APP_URI);
+    const html = resource.contents[0].text ?? '';
+    const script = /<script type="module">([\s\S]*?)<\/script>/.exec(html)?.[1];
+    if (!script) throw new Error('App HTML is missing its module script');
+
+    const listeners: Array<(event: unknown) => void> = [];
+    const sent: Array<Record<string, unknown>> = [];
+    const root = {
+      innerHTML: '',
+      addEventListener: () => {},
+    };
+    const documentStub = {
+      getElementById: () => root,
+      documentElement: {
+        setAttribute: () => {},
+        getAttribute: () => null,
+        classList: { contains: () => false },
+        style: { setProperty: () => {}, colorScheme: '' },
+        getBoundingClientRect: () => ({ height: 600 }),
+      },
+      addEventListener: () => {},
+    };
+    const parent = {
+      postMessage: (message: Record<string, unknown>) => sent.push(message),
+    };
+    const windowStub = {
+      parent,
+      innerWidth: 800,
+      addEventListener: (type: string, fn: (event: unknown) => void) => {
+        if (type === 'message') listeners.push(fn);
+      },
+    };
+
+    new Function(
+      'window',
+      'document',
+      'console',
+      'requestAnimationFrame',
+      'ResizeObserver',
+      script,
+    )(
+      windowStub,
+      documentStub,
+      { warn: () => {}, log: () => {}, error: () => {} },
+      (fn: () => void) => fn(),
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+
+    // The empty state replaces the boot screen even if no host replies.
+    expect(root.innerHTML).toContain('Ready when you are');
+
+    const initialize = sent.find(
+      (message) => message.method === 'ui/initialize',
+    );
+    expect(initialize).toBeTruthy();
+    expect((initialize?.params as { protocolVersion?: string }).protocolVersion).toBe(
+      '2026-01-26',
+    );
+
+    const deliver = (data: unknown) =>
+      listeners.forEach((listener) => listener({ source: parent, data }));
+
+    deliver({
+      jsonrpc: '2.0',
+      id: initialize?.id,
+      result: {
+        protocolVersion: '2026-01-26',
+        hostInfo: { name: 'test', version: '1.0.0' },
+        hostCapabilities: {},
+        hostContext: { theme: 'light' },
+      },
+    });
+    await Promise.resolve();
+    expect(
+      sent.some((message) => message.method === 'ui/notifications/initialized'),
+    ).toBe(true);
+
+    deliver({
+      jsonrpc: '2.0',
+      method: 'ui/notifications/tool-result',
+      params: {
+        structuredContent: {
+          result: [
+            {
+              id: 'product-1',
+              name: 'Balaka Embroidered Tunic',
+              slug: 'balaka-embroidered-tunic',
+              price_cents: 3824,
+              currency: 'USD',
+              category_name: 'Tops',
+              description: 'Cotton tunic',
+              is_active: true,
+            },
+          ],
+        },
+      },
+    });
+
+    expect(root.innerHTML).toContain('Balaka Embroidered Tunic');
+    expect(root.innerHTML).not.toContain('Connecting to the storefront app');
+  });
+
+  it('allows only the placeholder image origin in the resource CSP', async () => {
+    const { resources } = await storeAppServer.listResources();
+    const app = resources.find((resource) => resource.uri === STORE_APP_URI) as
+      | { _meta?: { ui?: { csp?: { resourceDomains?: string[] } } } }
+      | undefined;
+
+    expect(app?._meta?.ui?.csp?.resourceDomains).toEqual([
+      'https://placehold.co',
+    ]);
+  });
+
   it('confirms destructive actions inside the app instead of window.confirm', async () => {
     const resource = await storeAppServer.readResource(STORE_APP_URI);
     const html = resource.contents[0].text ?? '';

@@ -36,10 +36,9 @@ export const storeAppServer = new MCPServer({
       ),
       meta: {
         csp: {
-          resourceDomains: [
-            "https://cdn.jsdelivr.net",
-            "https://placehold.co",
-          ],
+          // The app is self-contained: no remote scripts or stylesheets, only
+          // the placeholder product image.
+          resourceDomains: ["https://placehold.co"],
         },
       },
     },
