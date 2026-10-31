@@ -56,6 +56,19 @@ describe('store agent truth and working-memory instructions', () => {
     expect(storeInstructions).toContain('<checkout_stock_safety>');
   });
 
+  it('separates order creation from payment links and forbids placeholder URLs', () => {
+    expect(storeInstructions).toContain(
+      'checkout-order only creates the pending order; it does not start',
+    );
+    expect(storeInstructions).toContain(
+      'Do not call create-checkout-session or create-payment-intent',
+    );
+    expect(storeInstructions).toContain('customer explicitly asks to pay');
+    expect(storeInstructions).toContain('automatically after checkout-order');
+    expect(storeInstructions).toContain('substitute a placeholder URL');
+    expect(storeInstructions).toContain('If the result has no usable url');
+  });
+
   it('registers all tool names and IDs in a dedicated variable and includes them in storeInstructions', () => {
     expect(registered_tools).toBeDefined();
     expect(tool_registry).toBe(registered_tools);
