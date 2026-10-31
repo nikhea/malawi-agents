@@ -118,21 +118,28 @@ export const getCategoryTool = createLoggedTool({
   id: 'get-category',
   description:
     'Get one product category by its ID or slug. Use list-categories first when you only know the category name.',
-  inputSchema: cleanInputSchema(z.union([
-    z.object({
-      id: z.string().describe('Category ID'),
-    }),
-    z.object({
-      slug: z.string().describe('Category slug, for example cooking-oil'),
-    }),
-  ])),
+  inputSchema: cleanInputSchema(
+    z
+      .object({
+        id: z
+          .preprocess(blankToUndefined, z.string().optional())
+          .describe('Category ID'),
+        slug: z
+          .preprocess(blankToUndefined, z.string().optional())
+          .describe('Category slug, for example cooking-oil'),
+      })
+      .refine(
+        ({ id, slug }) => [id, slug].filter(Boolean).length === 1,
+        'Provide exactly one of id or slug',
+      ),
+  ),
   outputSchema: categorySchema,
   requestContextSchema,
   toModelOutput: singleCategoryModelOutput,
   execute: async (input, { requestContext, observe }) => {
     const store = createMalawiStore(requestContext);
-    if ('id' in input) return store.categories.get(input.id);
-    return store.categories.getBySlug(input.slug);
+    if ('id' in input && input.id) return store.categories.get(input.id);
+    return store.categories.getBySlug(input.slug!);
   },
 });
 

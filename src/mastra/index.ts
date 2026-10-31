@@ -18,6 +18,7 @@ import { reviewsTools } from "./tools/reviews.tool";
 import { usersTools } from "./tools/users.tool";
 import { variantsTools } from "./tools/variants.tool";
 import { wishlistTools } from "./tools/wishlist.tool";
+import { storeAppServer } from "./mcp/store-app.server";
 import { malawiAuthMiddleware } from "./server/malawi-auth.middleware";
 import {
   createMastraLogger,
@@ -59,6 +60,9 @@ export const mastra = new Mastra({
     ...usersTools,
     ...inventoryTools,
   },
+  mcpServers: {
+    storeAppServer,
+  },
   scorers: {
     toolCallAppropriatenessScorer,
     completenessScorer,
@@ -94,6 +98,24 @@ export const mastra = new Mastra({
     }),
   },
   server: {
+    mcpOptions: {
+      setRequestAuth: (req) => {
+        const authorization = req.headers.authorization;
+        const token =
+          authorization?.startsWith("Bearer ")
+            ? authorization.slice("Bearer ".length).trim()
+            : undefined;
+        if (!token) return;
+
+        // MCP clients authenticate with the same Malawi access token the agent
+        // route uses. The tool wrapper copies this token into the Tool context.
+        (req as typeof req & { auth?: unknown }).auth = {
+          token,
+          clientId: "malawi-store",
+          scopes: [],
+        };
+      },
+    },
     // apiRoutes: [...KNOWLEDGE_ROUTES],
     middleware: [
       {
