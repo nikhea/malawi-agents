@@ -395,9 +395,10 @@ export const storeAppHtml = String.raw`<!doctype html>
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
 
-    function thumb(name) {
+    function thumb(name, imageUrl) {
+      const src = imageUrl || PLACEHOLDER_IMAGE;
       return '<div class="thumb"><span class="thumb-initials">' + esc(initials(name)) + '</span>' +
-        '<img src="' + PLACEHOLDER_IMAGE + '" alt="" loading="lazy" /></div>';
+        '<img src="' + esc(src) + '" alt="" loading="lazy" /></div>';
     }
 
     function textFromContent(result) {
@@ -462,21 +463,7 @@ export const storeAppHtml = String.raw`<!doctype html>
     function header() {
       return '<header class="topbar">' +
         '<div class="brand"><span class="brand-mark">M</span><div><strong>Malawi Store</strong><span>Personal storefront</span></div></div>' +
-        '<div class="top-actions">' +
-          '<button class="ghost" data-action="open-cart">Cart</button>' +
-          '<button class="ghost" data-action="open-orders">Orders</button>' +
-          '<button class="ghost" data-action="refresh">Refresh</button>' +
-        '</div>' +
       '</header>';
-    }
-
-    function footer() {
-      return '<footer class="footer">' +
-        '<button data-action="browse">Browse products</button>' +
-        '<button data-action="open-cart">View cart</button>' +
-        '<button data-action="open-wishlist">Wishlist</button>' +
-        '<button data-action="open-account">Account</button>' +
-      '</footer>';
     }
 
     function shell(title, subtitle, content) {
@@ -486,12 +473,11 @@ export const storeAppHtml = String.raw`<!doctype html>
         (subtitle ? '<p class="lede">' + esc(subtitle) + '</p>' : '') +
         (busy ? '<div class="busy"><div class="spinner"></div><span>Updating the storefront</span></div>' : '') +
         content +
-      '</main>' + footer();
+      '</main>';
     }
 
-    function emptyState(title, message, action, label) {
-      return '<div class="empty"><h2>' + esc(title) + '</h2><p>' + esc(message) + '</p>' +
-        (action ? '<button data-action="' + esc(action) + '">' + esc(label) + '</button>' : '') + '</div>';
+    function emptyState(title, message) {
+      return '<div class="empty"><h2>' + esc(title) + '</h2><p>' + esc(message) + '</p></div>';
     }
 
     function stockBadge(variant) {
@@ -515,7 +501,7 @@ export const storeAppHtml = String.raw`<!doctype html>
       const name = product.name || "Product";
       return '<article class="card">' +
         '<button class="card-button" data-action="product" data-id="' + esc(product.id) + '">' +
-          thumb(name) +
+          thumb(name, product.image_url) +
           '<div class="card-body">' +
             '<div class="row between"><span class="pill">' + esc(product.category_name || "Catalog") + '</span>' +
               (product.is_active === false ? '<span class="pill muted-pill">Inactive</span>' : '') + '</div>' +
@@ -530,9 +516,11 @@ export const storeAppHtml = String.raw`<!doctype html>
 
     function renderProducts(products) {
       const cards = products.map(productCard).join("");
-      return shell("Products", products.length + " product" + (products.length === 1 ? "" : "s") + " from the catalog.",
+      const scoped = lastArgs && lastArgs.categoryId && products.length && products[0].category_name;
+      return shell(scoped ? "Products in " + products[0].category_name : "Products",
+        products.length + " product" + (products.length === 1 ? "" : "s") + " from the catalog.",
         cards ? '<section class="grid">' + cards + '</section>' :
-          emptyState("No products found", "Try another search or browse the full catalog.", "browse", "Browse all products"));
+          emptyState("No products found", "This catalog has no products to show right now."));
     }
 
     function renderProduct(detail) {
@@ -549,7 +537,7 @@ export const storeAppHtml = String.raw`<!doctype html>
       }).join("");
       return shell(product.name || "Product", product.category_name || "Product details",
         '<section class="detail">' +
-          '<div>' + thumb(product.name || "Product") + '</div>' +
+          '<div>' + thumb(product.name || "Product", product.image_url) + '</div>' +
           '<div class="detail-body">' +
             '<div class="row between"><span class="pill">' + esc(product.category_name || "Catalog") + '</span>' +
               '<span class="price">' + esc(money(product.price_cents, product.currency)) + '</span></div>' +
@@ -582,7 +570,7 @@ export const storeAppHtml = String.raw`<!doctype html>
       const items = Array.isArray(cart.items) ? cart.items : [];
       if (!items.length) {
         return shell("Your cart", "Your cart is empty.",
-          emptyState("Nothing in the cart yet", "Browse the catalog and add a variant to get started.", "browse", "Browse products"));
+          emptyState("Nothing in the cart yet", "Add a variant to this cart and it will appear here."));
       }
       return shell("Your cart", items.length + " line" + (items.length === 1 ? "" : "s") + " ready to checkout.",
         '<section class="panel">' + items.map(cartLine).join("") +
@@ -612,7 +600,7 @@ export const storeAppHtml = String.raw`<!doctype html>
     function renderOrders(orders) {
       return shell("Orders", orders.length + " order" + (orders.length === 1 ? "" : "s") + " on your account.",
         orders.length ? orders.map(orderCard).join("") :
-          emptyState("No orders yet", "Your completed and pending orders will appear here.", "browse", "Browse products"));
+          emptyState("No orders yet", "Your completed and pending orders will appear here."));
     }
 
     function renderOrder(order) {
@@ -622,7 +610,7 @@ export const storeAppHtml = String.raw`<!doctype html>
     function wishlistCard(item) {
       const product = item.product || {};
       return '<article class="card">' +
-        thumb(product.name || "Wishlist item") +
+        thumb(product.name || "Wishlist item", product.image_url) +
         '<div class="card-body">' +
           '<h2>' + esc(product.name || "Wishlist item") + '</h2>' +
           '<p class="price">' + esc(money(product.price_cents, product.currency)) + '</p>' +
@@ -636,18 +624,28 @@ export const storeAppHtml = String.raw`<!doctype html>
     function renderWishlist(items) {
       return shell("Wishlist", items.length + " saved item" + (items.length === 1 ? "" : "s") + ".",
         items.length ? '<section class="grid">' + items.map(wishlistCard).join("") + '</section>' :
-          emptyState("Your wishlist is empty", "Save a product to keep it here for later.", "browse", "Browse products"));
+          emptyState("Your wishlist is empty", "Saved products will appear here."));
+    }
+
+    function categoryCard(category) {
+      const name = category.name || "Category";
+      return '<article class="card">' +
+        '<button class="card-button" data-action="category-products" data-id="' + esc(category.id) + '">' +
+          thumb(name, category.image_url) +
+          '<div class="card-body">' +
+            '<h2>' + esc(name) + '</h2>' +
+            '<p class="muted small clamp">' + esc(category.description || "Shop this category") + '</p>' +
+            '<span class="link">View products</span>' +
+          '</div>' +
+        '</button>' +
+      '</article>';
     }
 
     function renderCategories(categories) {
-      const cards = categories.map(function (category) {
-        return '<article class="card"><div class="thumb"><span class="thumb-initials">' + esc(initials(category.name)) + '</span>' +
-          '<img src="' + PLACEHOLDER_IMAGE + '" alt="" loading="lazy" /></div>' +
-          '<div class="card-body"><h2>' + esc(category.name) + '</h2>' +
-          '<p class="muted small">' + esc(category.description || "Shop this category") + '</p></div></article>';
-      }).join("");
+      const cards = categories.map(categoryCard).join("");
       return shell("Categories", categories.length + " categories in the catalog.",
-        cards ? '<section class="grid">' + cards + '</section>' : emptyState("No categories", "The catalog has no categories right now.", "", ""));
+        cards ? '<section class="grid">' + cards + '</section>' :
+          emptyState("No categories", "The catalog has no categories right now."));
     }
 
     function renderVariants(variants) {
@@ -693,8 +691,7 @@ export const storeAppHtml = String.raw`<!doctype html>
     function renderSuccess() {
       return shell("Done", "Your storefront was updated.",
         '<div class="success"><span class="check">✓</span><h2>' + esc(successMessage()) + '</h2>' +
-        '<p>Ask the assistant for your cart, orders, or wishlist to see the latest state.</p>' +
-        '<button data-action="refresh">Refresh view</button></div>');
+        '<p>Ask the assistant to show this view again to see the latest state.</p></div>');
     }
 
     function renderStatus(data) {
@@ -710,15 +707,14 @@ export const storeAppHtml = String.raw`<!doctype html>
     }
 
     function renderEmpty() {
-      return shell("Your storefront", "Ask the assistant to browse products, check your cart, or review an order. Results appear here as an interactive app.",
-        emptyState("Ready when you are", "Try browsing the catalog or opening your cart.", "browse", "Browse products"));
+      return shell("Your storefront", "Ask the assistant to browse products, check a cart, or review an order. Results appear here as an interactive view.",
+        emptyState("Ready when you are", "The storefront shows one view at a time."));
     }
 
     function renderError() {
       const message = textFromContent(lastResult) || "The store could not complete that request.";
       return shell("Something went wrong", "The store returned an error.",
-        '<div class="error"><h2>That did not work</h2><p>' + esc(message) + '</p>' +
-        '<button data-action="refresh">Try again</button></div>');
+        '<div class="error"><h2>That did not work</h2><p>' + esc(message) + '</p></div>');
     }
 
     function render() {
@@ -745,7 +741,7 @@ export const storeAppHtml = String.raw`<!doctype html>
       if (view === "text") return void (root.innerHTML = renderStatus({ status: String(data) }));
       if (view === "empty-list") {
         root.innerHTML = shell("Nothing here yet", "The store returned an empty collection.",
-          emptyState("No records", "Try a different view or browse the catalog.", "browse", "Browse products"));
+          emptyState("No records", "This view has no records right now."));
         return;
       }
       if (view === "collection") return void (root.innerHTML = renderJson(data));
@@ -770,30 +766,16 @@ export const storeAppHtml = String.raw`<!doctype html>
       }
     }
 
-    function refresh() {
-      if (view === "products") return runTool("list-products", lastArgs && Object.keys(lastArgs).length ? lastArgs : { limit: 12 });
-      if (view === "product") return runTool("get-product", lastArgs);
-      if (view === "cart") return runTool("get-cart", {});
-      if (view === "orders") return runTool("list-orders", {});
-      if (view === "order") return runTool("get-order", lastArgs);
-      if (view === "wishlist") return runTool("list-wishlist", {});
-      if (view === "categories") return runTool("list-categories", {});
-      if (view === "variants") return runTool("list-variants", lastArgs);
-      if (view === "review-summary") return runTool("get-product-reviews", lastArgs);
-      if (view === "user") return runTool("get-me", {});
-      return runTool("list-products", { limit: 12 });
-    }
-
     root.addEventListener("click", function (event) {
       const target = event.target && event.target.closest ? event.target.closest("[data-action]") : null;
       if (!target) return;
       const action = target.getAttribute("data-action");
-      if (action === "browse") { runTool("list-products", { limit: 12 }); return; }
-      if (action === "open-cart") { runTool("get-cart", {}); return; }
-      if (action === "open-orders") { runTool("list-orders", {}); return; }
-      if (action === "open-wishlist") { runTool("list-wishlist", {}); return; }
-      if (action === "open-account") { runTool("get-me", {}); return; }
-      if (action === "refresh") { refresh(); return; }
+      if (action === "category-products") {
+        const categoryId = target.getAttribute("data-id") || "";
+        if (!categoryId) return;
+        runTool("list-products", { categoryId: categoryId, limit: 24 });
+        return;
+      }
       if (action === "product") { runTool("get-product", { id: target.getAttribute("data-id") }); return; }
       if (action === "add-variant") {
         runTool("add-cart-item", {
