@@ -3,6 +3,7 @@ import { createLoggedTool } from "../lib/malawi-logging";
 import { malawiContextSchema } from "../lib/malawi-context";
 import {
   blankToUndefined,
+  cleanFilterInputObject,
   cleanInputObject,
   compactPayload,
 } from "../lib/malawi-input";
@@ -15,7 +16,7 @@ export const getCartTool = createLoggedTool({
   id: "get-cart",
   description:
     "Get the authenticated customer's active cart, including line items and the subtotal in integer tambala. Filter items by search query, product, variant, sort order, or pagination.",
-  inputSchema: cleanInputObject({
+  inputSchema: cleanFilterInputObject({
     query: z
       .preprocess(blankToUndefined, z.string().optional())
       .describe("Filter cart items by product title or variant name substring"),
@@ -80,14 +81,16 @@ export const getCartTool = createLoggedTool({
 export const addCartItemTool = createLoggedTool({
   id: "add-cart-item",
   description:
-    "Add a product or product variant to the authenticated customer's cart. Use get-product or list-variants first to find IDs.",
+    "Add a product variant to the authenticated customer's cart. variantId is required: call get-product or list-variants first and pass the exact variant ID for the item.",
   requireApproval: true,
   inputSchema: cleanInputObject({
-    productId: z.string().describe("Product ID to add"),
+    productId: z.string().min(1).describe("Product ID to add"),
     variantId: z
       .string()
-      .optional()
-      .describe("Variant ID. Omit to use the base product price."),
+      .min(1)
+      .describe(
+        "Variant ID. Required: find the exact variant with get-product or list-variants; do not omit it.",
+      ),
     qty: z
       .number()
       .int()

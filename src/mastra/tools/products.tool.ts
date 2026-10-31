@@ -3,6 +3,7 @@ import { createLoggedTool } from "../lib/malawi-logging";
 import { malawiContextSchema, requireAdmin } from "../lib/malawi-context";
 import {
   blankToUndefined,
+  cleanFilterInputObject,
   cleanInputObject,
   cleanInputSchema,
   compactPayload,
@@ -21,7 +22,7 @@ export const listProductsTool = createLoggedTool({
   id: "list-products",
   description:
     "List or search products in the Malawi Store catalog. Prices are integer tambala (12500 means K125.00). Filter by price, date, category, size, stock, rating, active status, pagination, and sort order.",
-  inputSchema: cleanInputObject({
+  inputSchema: cleanFilterInputObject({
     query: z
       .preprocess(blankToUndefined, z.string().optional())
       .describe(

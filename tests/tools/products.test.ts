@@ -102,6 +102,26 @@ describe('listProductsTool', () => {
     expect(calls[0].url).toBe(apiUrl('/products?active_only=true&limit=5'));
   });
 
+  it('omits zero-valued model sentinels from optional filters', async () => {
+    const { calls } = stubFetch(() => jsonResponse({ data: [product] }));
+
+    await executeTool(
+      listProductsTool,
+      {
+        query: 'Blantyre Mini Crossbody Bag',
+        minPriceCents: 0,
+        maxPriceCents: 0,
+        minRating: 0,
+        offset: 0,
+      },
+      context(),
+    );
+
+    expect(calls[0].url).toBe(
+      apiUrl('/products?q=Blantyre+Mini+Crossbody+Bag&limit=5'),
+    );
+  });
+
   it('logs a structured start event with the authenticated user', async () => {
     stubFetch(() => jsonResponse({ data: [] }));
     const observe = { log: vi.fn() };

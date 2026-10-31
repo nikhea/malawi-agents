@@ -61,14 +61,24 @@ export const cartDatasets: EntityDatasetSpec = {
         outcome: "tool-call",
         expectedToolCalls: [
           {
+            tool: "list-products",
+            args: { query: "Blantyre Mini Crossbody Bag" },
+            why: "Resolve the crossbody product ID.",
+          },
+          {
             tool: "add-cart-item",
-            args: { productId: IDs.products.crossbody, qty: 1 },
+            args: {
+              productId: IDs.products.crossbody,
+              variantId: IDs.variants.crossbodyOneSize,
+              qty: 1,
+            },
+            why: "Add the resolved One Size variant.",
           },
         ],
         responseMustInclude: ["crossbody"],
         mustNotCall: [],
         notes:
-          "qty is required and must be at least 1; defaulting an unspecified quantity to 1 is correct.",
+          "add-cart-item requires both productId and variantId; defaulting an unspecified quantity to 1 is correct.",
       },
       {
         coverage: "create",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  checkout_stock_safety,
   entity_id_privacy,
   entity_table_format,
   registered_tools,
@@ -43,6 +44,16 @@ describe('store agent truth and working-memory instructions', () => {
     expect(entity_table_format).toContain('Use a table even when there is only one record');
     expect(entity_table_format).toContain('Never put complete entity IDs in a table');
     expect(storeInstructions).toContain('<entity_table_format>');
+  });
+
+  it('requires checkout to validate exact cart variants and avoid blind retries', () => {
+    expect(checkout_stock_safety).toContain('always read the current cart with get-cart');
+    expect(checkout_stock_safety).toContain('has available less than the cart');
+    expect(checkout_stock_safety).toContain('catalog');
+    expect(checkout_stock_safety).toContain('visibility only');
+    expect(checkout_stock_safety).toContain('do not repeat the same');
+    expect(checkout_stock_safety).toContain('do not claim a particular item is out of stock');
+    expect(storeInstructions).toContain('<checkout_stock_safety>');
   });
 
   it('registers all tool names and IDs in a dedicated variable and includes them in storeInstructions', () => {

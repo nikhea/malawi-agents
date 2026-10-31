@@ -3,6 +3,7 @@ import { createLoggedTool } from '../lib/malawi-logging';
 import { malawiContextSchema } from '../lib/malawi-context';
 import {
   blankToUndefined,
+  cleanFilterInputObject,
   cleanInputObject,
   compactPayload,
   listRows,
@@ -19,7 +20,7 @@ export const listWishlistTool = createLoggedTool({
   id: 'list-wishlist',
   description:
     "List or filter the authenticated customer's wishlist items. Filter by search query, category, sort order, and pagination. Each item includes a product snapshot and its current price in integer tambala.",
-  inputSchema: cleanInputObject({
+  inputSchema: cleanFilterInputObject({
     query: z
       .preprocess(blankToUndefined, z.string().optional())
       .describe('Filter saved items by product name or slug substring'),

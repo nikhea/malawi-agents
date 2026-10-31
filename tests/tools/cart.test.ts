@@ -83,6 +83,20 @@ describe('addCartItemTool', () => {
       qty: 2,
     });
   });
+
+  it('rejects a missing variantId before calling the Store API', async () => {
+    const { calls } = stubFetch();
+
+    const result = (await executeTool(
+      addCartItemTool,
+      { productId: 'prod-1', qty: 1 },
+      context(),
+    )) as { error?: boolean; message?: string };
+
+    expect(result.error).toBe(true);
+    expect(result.message).toContain('variantId');
+    expect(calls).toHaveLength(0);
+  });
 });
 
 describe('setCartItemQtyTool', () => {
@@ -137,7 +151,7 @@ describe('request context', () => {
 
     const cases = [
       [getCartTool, {}],
-      [addCartItemTool, { productId: 'prod-1', qty: 1 }],
+      [addCartItemTool, { productId: 'prod-1', variantId: 'var-1', qty: 1 }],
       [setCartItemQtyTool, { itemId: 'line-1', qty: 1 }],
       [removeCartItemTool, { itemId: 'line-1' }],
       [clearCartTool, {}],

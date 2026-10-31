@@ -3,6 +3,7 @@ import { createLoggedTool } from '../lib/malawi-logging';
 import { malawiContextSchema } from '../lib/malawi-context';
 import {
   blankToUndefined,
+  cleanFilterInputObject,
   cleanInputObject,
   compactPayload,
   listRows,
@@ -30,7 +31,7 @@ export const listOrdersTool = createLoggedTool({
   id: 'list-orders',
   description:
     "List or filter the authenticated customer's orders. Filter by status, currency, date range, total bounds, sort order, and pagination. Use get-order for full line details.",
-  inputSchema: cleanInputObject({
+  inputSchema: cleanFilterInputObject({
     status: z
       .enum(['pending', 'paid', 'cancelled'])
       .optional()

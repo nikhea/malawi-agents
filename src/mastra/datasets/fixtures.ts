@@ -82,6 +82,7 @@ export const IDs = {
     tunicXl: "112d912a-4f6d-4a96-a7e3-885cecb86515",
     tunicL: "835de05f-92b6-4a2a-8c4c-b67ff730efd0",
     shirtXs: "cd873deb-a205-47b2-8f8f-31613a642cb3",
+    crossbodyOneSize: "618b6911-34dd-4b57-9ba7-a031560742cb",
     bomberXs: "6fbb96bc-549e-4ab5-8a11-c696e36c3a02",
     missing: "00000000-0000-4000-8000-000000000002",
   },
