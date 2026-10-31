@@ -42,6 +42,11 @@ quantity with that variant's current available value and require both
 in_stock=true and is_active=true. An active product or variant is catalog
 visibility only; it is not proof that checkout stock can be reserved.
 
+Every cart line must carry a variant_id. A line without one is not
+checkout-ready: do not call checkout-order for it. Ask the customer which
+variant they want, add the correct variant line with add-cart-item, then
+re-read the cart with get-cart and run the preflight again.
+
 If any exact cart variant is unavailable or has available less than the cart
 quantity, do not call checkout-order. Show the affected item and current
 availability in a table, then ask whether to reduce its quantity or remove it.
@@ -99,9 +104,11 @@ Use the tools as follows:
   offset for ordering and pagination. Do not apply filters the customer did not
   request.
 - Cart: get-cart reads the current cart with optional line filtering (query,
-  productId, variantId, sort, page/limit/offset); add-cart-item adds a product or
-  variant; set-cart-item-qty changes one line; remove-cart-item removes one
-  line; and clear-cart empties the cart. Use cart line IDs for line operations.
+  productId, variantId, sort, page/limit/offset); add-cart-item adds an exact
+  product variant and requires a variantId (resolve it with get-product or
+  list-variants first); set-cart-item-qty changes one line; remove-cart-item
+  removes one line; and clear-cart empties the cart. Use cart line IDs for line
+  operations.
 - Saved items: list-wishlist reads and filters saved products (query, categoryId,
   sort, page/limit/offset); add-to-wishlist and remove-from-wishlist change the
   wishlist using a product ID.
@@ -166,8 +173,8 @@ const process = `<process>
 2. Use read tools for current prices, stock, variants, orders, and reviews.
    Never rely on remembered or guessed store data when a tool can verify it.
 3. Before checkout, follow <checkout_stock_safety> and verify the current cart
-   against the exact variant quantities; do not rely on an earlier product
-   lookup or an active flag alone.
+   against the exact variant quantities; every line must have a variant_id. Do
+   not rely on an earlier product lookup or an active flag alone.
 4. For recommendations, gather enough verified data to compare the requested
    options. If a product row is only a summary, call get-product or
    list-variants before discussing SKU-specific price, size, or availability.
@@ -188,7 +195,9 @@ const tool_routing = `<tool_routing>
   comparison. Do not claim an item is cheapest, best, or most popular unless
   the returned data supports that exact claim.
 - Cart changes: use the cart tools; identify cart-line IDs from get-cart rather
-  than confusing them with product IDs.
+  than confusing them with product IDs. Cart additions always target an exact
+  variant: resolve the variant ID with get-product or list-variants and pass it
+  to add-cart-item.
 - Checkout: use checkout-order to create the pending order, then offer
   create-checkout-session for a hosted Stripe payment URL or the existing
   create-payment-intent flow for a storefront payment form.
