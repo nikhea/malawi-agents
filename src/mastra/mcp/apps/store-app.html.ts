@@ -61,27 +61,46 @@ export const storeAppHtml = String.raw`<!doctype html>
     }
     .app { max-width: 1080px; margin: 0 auto; padding: 18px 18px 28px; }
     .topbar {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; padding: 10px 4px 18px; flex-wrap: wrap;
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 12px 4px 16px; margin-bottom: 6px;
+      border-bottom: 1px solid var(--line);
     }
-    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .brand-mark {
-      width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center;
-      background: linear-gradient(145deg, var(--green), var(--green-2));
-      color: #fff; font-family: var(--serif); font-size: 23px; font-weight: 700;
-      box-shadow: 0 8px 20px rgba(29, 92, 69, 0.28);
+      width: 46px; height: 46px; flex: 0 0 46px; display: block; overflow: hidden;
+      border-radius: 15px; background: var(--green);
+      box-shadow:
+        0 10px 24px -10px rgba(29, 92, 69, 0.55),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.16);
     }
-    .brand strong { display: block; font-family: var(--serif); font-size: 18px; letter-spacing: 0.01em; }
-    .brand span { display: block; color: var(--muted); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .brand-mark svg { display: block; width: 100%; height: 100%; }
+    .brand-copy { min-width: 0; }
+    .brand strong {
+      display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap;
+      font-family: var(--serif); font-size: 21px; line-height: 1.05; letter-spacing: -0.015em;
+    }
+    .brand-word {
+      font-family: var(--font); font-size: 10px; font-weight: 800;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--clay);
+    }
+    .brand-tag {
+      display: flex; align-items: center; gap: 7px;
+      color: var(--muted); font-size: 10px; letter-spacing: 0.13em;
+      text-transform: uppercase; margin-top: 4px;
+    }
+    .brand-tag::before {
+      content: ""; display: inline-block; width: 18px; height: 1px; background: var(--gold);
+    }
+    [data-theme="dark"] .brand-mark {
+      box-shadow:
+        0 10px 24px -10px rgba(0, 0, 0, 0.7),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
     button {
       font: inherit; color: inherit; cursor: pointer; border: 0; background: none;
     }
     button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-    .main { padding: 8px 4px 24px; }
-    .eyebrow {
-      color: var(--clay); font-size: 10px; font-weight: 800; letter-spacing: 0.16em;
-      text-transform: uppercase; margin-bottom: 6px;
-    }
+    .main { padding: 14px 4px 24px; }
     h1 { font-family: var(--serif); font-size: clamp(26px, 4vw, 38px); line-height: 1.08; margin: 0 0 8px; letter-spacing: -0.02em; }
     h2 { font-family: var(--serif); font-size: 20px; line-height: 1.2; margin: 0 0 5px; }
     h3 { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 22px 0 9px; }
@@ -462,14 +481,36 @@ export const storeAppHtml = String.raw`<!doctype html>
     }
 
     function header() {
+      // Sun over the lake: the mark is inline SVG so the app stays self-contained.
       return '<header class="topbar">' +
-        '<div class="brand"><span class="brand-mark">M</span><div><strong>Malawi Store</strong><span>Personal storefront</span></div></div>' +
+        '<div class="brand">' +
+          '<span class="brand-mark" aria-hidden="true">' +
+            '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" focusable="false">' +
+              '<defs>' +
+                '<linearGradient id="mw-mark" x1="7" y1="3" x2="41" y2="46" gradientUnits="userSpaceOnUse">' +
+                  '<stop stop-color="#3a8a68" />' +
+                  '<stop offset="0.55" stop-color="#1d5c45" />' +
+                  '<stop offset="1" stop-color="#133d2f" />' +
+                '</linearGradient>' +
+              '</defs>' +
+              '<rect width="48" height="48" rx="15" fill="url(#mw-mark)" />' +
+              '<circle cx="24" cy="17" r="12" fill="#e1b968" opacity="0.16" />' +
+              '<circle cx="24" cy="17" r="6.5" fill="#e1b968" />' +
+              '<path d="M0 31c7-5 13-5 20 0s13 5 28 0v17H0Z" fill="#fdf6e9" opacity="0.94" />' +
+              '<path d="M0 37c7-4.5 13-4.5 20 0s13 4.5 28 0v11H0Z" fill="#c99a3f" opacity="0.55" />' +
+              '<rect x="0.5" y="0.5" width="47" height="47" rx="14.5" fill="none" stroke="#fff" stroke-opacity="0.18" />' +
+            '</svg>' +
+          '</span>' +
+          '<span class="brand-copy">' +
+            '<strong>Malawi <span class="brand-word">Store</span></strong>' +
+            '<span class="brand-tag">Curated by the lake</span>' +
+          '</span>' +
+        '</div>' +
       '</header>';
     }
 
     function shell(title, subtitle, content) {
       return header() + '<main class="main">' +
-        '<div class="eyebrow">Malawi Store</div>' +
         '<h1>' + esc(title) + '</h1>' +
         (subtitle ? '<p class="lede">' + esc(subtitle) + '</p>' : '') +
         (busy ? '<div class="busy"><div class="spinner"></div><span>' + esc(busyLabel || "Updating the storefront") + '</span></div>' : '') +

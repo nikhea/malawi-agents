@@ -267,6 +267,17 @@ describe('Malawi Store MCP App', () => {
     expect(content.text).not.toContain('__MALAWI_STORE_PLACEHOLDER_IMAGE__');
   });
 
+  it('renders an inline SVG logo lockup in the header', async () => {
+    const resource = await storeAppServer.readResource(STORE_APP_URI);
+    const html = resource.contents[0].text ?? '';
+
+    expect(html).toContain('class="brand-mark"');
+    expect(html).toContain('<svg viewBox="0 0 48 48"');
+    expect(html).toContain('class="brand-word"');
+    expect(html).toContain('Curated by the lake');
+    expect(html).not.toContain('Personal storefront');
+  });
+
   it('ships a self-contained host bridge with no remote script import', async () => {
     const resource = await storeAppServer.readResource(STORE_APP_URI);
     const html = resource.contents[0].text ?? '';
