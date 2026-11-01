@@ -198,6 +198,13 @@ export const storeAppHtml = String.raw`<!doctype html>
       font-size: 12px; line-height: 1.55; max-height: 460px;
     }
     .busy { display: inline-flex; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+    .notice {
+      display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px;
+      background: rgba(29, 92, 69, 0.12); border: 1px solid rgba(29, 92, 69, 0.24);
+      color: var(--green); border-radius: 999px; padding: 7px 14px;
+      font-size: 12px; font-weight: 700;
+    }
+    [data-theme="dark"] .notice { background: rgba(109, 198, 160, 0.12); border-color: rgba(109, 198, 160, 0.28); }
     .spinner { width: 17px; height: 17px; border: 2px solid var(--line); border-top-color: var(--green); border-radius: 999px; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .boot { min-height: 60vh; display: grid; place-items: center; text-align: center; color: var(--muted); }
@@ -345,6 +352,8 @@ export const storeAppHtml = String.raw`<!doctype html>
     let lastAction = "";
     let pendingCancel = "";
     let busy = false;
+    let busyLabel = "";
+    let notice = "";
     let view = "empty";
     let viewData = null;
 
@@ -407,7 +416,7 @@ export const storeAppHtml = String.raw`<!doctype html>
           typeof value === "object" &&
           !Array.isArray(value) &&
           Object.keys(value).length === 1 &&
-          Array.isArray(value.result)
+          "result" in value
         ) {
           return value.result;
         }
@@ -442,8 +451,14 @@ export const storeAppHtml = String.raw`<!doctype html>
       if ("average" in data && "reviews" in data) return "review-summary";
       if ("success" in data) return "success";
       if ("email" in data && "role" in data) return "user";
+      if ("product_id" in data && "product" in data && "added_at" in data) return "wishlist-item";
+      if ("product_id" in data && "sku" in data) return "variant";
+      if ("rating" in data && "body" in data) return "review";
+      if ("url" in data && "order_id" in data) return "checkout-session";
+      if ("price_cents" in data && "slug" in data) return "product-card";
+      if ("parent_id" in data || ("slug" in data && "name" in data)) return "category";
       if ("status" in data) return "status";
-      return "json";
+      return "record";
     }
 
     function header() {
@@ -457,7 +472,8 @@ export const storeAppHtml = String.raw`<!doctype html>
         '<div class="eyebrow">Malawi Store</div>' +
         '<h1>' + esc(title) + '</h1>' +
         (subtitle ? '<p class="lede">' + esc(subtitle) + '</p>' : '') +
-        (busy ? '<div class="busy"><div class="spinner"></div><span>Updating the storefront</span></div>' : '') +
+        (busy ? '<div class="busy"><div class="spinner"></div><span>' + esc(busyLabel || "Updating the storefront") + '</span></div>' : '') +
+        (notice && !busy ? '<div class="notice">' + esc(notice) + '</div>' : '') +
         content +
       '</main>';
     }
@@ -573,6 +589,7 @@ export const storeAppHtml = String.raw`<!doctype html>
           '<div class="order-id">' + esc(order.id) + ' · ' + esc(shortDate(order.created_at)) + '</div></div>' +
           '<div class="row">' + statusBadge(order.status) +
             (order.status === "pending" ?
+              '<button class="small" data-action="pay-order" data-id="' + esc(order.id) + '">Pay now</button>' +
               '<button class="link danger" data-action="cancel-order" data-id="' + esc(order.id) + '">' + (confirming ? "Confirm cancel" : "Cancel") + '</button>' +
               (confirming ? '<button class="link" data-action="keep-order">Keep order</button>' : '') : '') +
           '</div></div>' +
@@ -687,9 +704,61 @@ export const storeAppHtml = String.raw`<!doctype html>
         '<p>The app has the latest response from the store.</p></div>');
     }
 
-    function renderJson(data) {
-      return shell("Store data", "The tool returned this payload.",
-        '<pre class="json">' + esc(JSON.stringify(data, null, 2)) + '</pre>');
+    function labelize(key) {
+      return String(key).replace(/_/g, " ").replace(/\b\w/g, function (letter) { return letter.toUpperCase(); });
+    }
+
+    function prettyValue(value) {
+      if (value === null || value === undefined || value === "") return "—";
+      if (typeof value === "boolean") return value ? "Yes" : "No";
+      if (Array.isArray(value)) return value.length + " item" + (value.length === 1 ? "" : "s");
+      if (typeof value === "object") {
+        const count = Object.keys(value).length;
+        return count + " field" + (count === 1 ? "" : "s");
+      }
+      return String(value);
+    }
+
+    function renderRecord(data) {
+      const entries = Object.entries(data).filter(function (entry) { return entry[0] !== "_meta"; });
+      return shell("Store update", "The store returned this record.",
+        '<section class="panel"><div class="kv">' + entries.map(function (entry) {
+          return '<div><span>' + esc(labelize(entry[0])) + '</span>' + esc(prettyValue(entry[1])) + '</div>';
+        }).join("") + '</div></section>');
+    }
+
+    function renderCollection(items) {
+      const rows = items.map(function (item) {
+        if (!item || typeof item !== "object") {
+          return '<div class="line"><div class="line-main">' + esc(String(item)) + '</div></div>';
+        }
+        const title = item.name || item.title || item.status || item.id || "Record";
+        const detail = Object.keys(item)
+          .filter(function (key) { return key !== "id" && key !== "name" && key !== "title" && key !== "_meta"; })
+          .slice(0, 3)
+          .map(function (key) { return labelize(key) + ": " + prettyValue(item[key]); })
+          .join(" · ");
+        return '<div class="line"><div class="line-main"><strong>' + esc(title) + '</strong>' +
+          (detail ? '<div class="muted small">' + esc(detail) + '</div>' : '') + '</div></div>';
+      }).join("");
+      return shell("Records", items.length + " record" + (items.length === 1 ? "" : "s") + " from the store.",
+        '<section class="panel">' + rows + '</section>');
+    }
+
+    function renderCheckoutSession(session) {
+      const url = String(session.url || "");
+      const safeUrl = /^https?:\/\//i.test(url);
+      const rawExpiry = Number(session.expires_at || 0);
+      const expiry = rawExpiry > 0
+        ? new Date(rawExpiry > 1e12 ? rawExpiry : rawExpiry * 1000)
+        : null;
+      return shell("Checkout ready", "A payment page was created for this order.",
+        '<section class="panel"><h2>Order ' + esc(session.order_id || session.id || "") + '</h2>' +
+        '<p class="muted small">' + (expiry && !Number.isNaN(expiry.getTime())
+          ? "Expires " + esc(shortDate(expiry.toISOString()))
+          : "Payment page ready") + '</p>' +
+        (safeUrl ? '<button class="small" data-action="open-checkout" data-url="' + esc(url) + '">Open payment page</button>' : '') +
+        '</section>');
     }
 
     function renderEmpty() {
@@ -717,10 +786,16 @@ export const storeAppHtml = String.raw`<!doctype html>
       if (view === "orders") return void (root.innerHTML = renderOrders(data));
       if (view === "order") return void (root.innerHTML = renderOrder(data));
       if (view === "wishlist") return void (root.innerHTML = renderWishlist(data));
+      if (view === "wishlist-item") return void (root.innerHTML = renderWishlist([data]));
       if (view === "categories") return void (root.innerHTML = renderCategories(data));
+      if (view === "category") return void (root.innerHTML = renderCategories([data]));
       if (view === "variants") return void (root.innerHTML = renderVariants(data));
+      if (view === "variant") return void (root.innerHTML = renderVariants([data]));
       if (view === "review-summary") return void (root.innerHTML = renderReviewSummary(data));
       if (view === "reviews") return void (root.innerHTML = renderReviewSummary({ average: 0, count: data.length, reviews: data }));
+      if (view === "review") return void (root.innerHTML = renderReviewSummary({ average: data.rating, count: 1, reviews: [data] }));
+      if (view === "product-card") return void (root.innerHTML = renderProducts([data]));
+      if (view === "checkout-session") return void (root.innerHTML = renderCheckoutSession(data));
       if (view === "user") return void (root.innerHTML = renderUser(data));
       if (view === "success") return void (root.innerHTML = renderSuccess());
       if (view === "status") return void (root.innerHTML = renderStatus(data));
@@ -730,13 +805,78 @@ export const storeAppHtml = String.raw`<!doctype html>
           emptyState("No records", "This view has no records right now."));
         return;
       }
-      if (view === "collection") return void (root.innerHTML = renderJson(data));
-      if (view === "json") return void (root.innerHTML = renderJson(data));
+      if (view === "collection") return void (root.innerHTML = renderCollection(data));
+      if (view === "record") return void (root.innerHTML = renderRecord(data));
       root.innerHTML = renderEmpty();
     }
 
+    function busyLabelFor(name) {
+      const labels = {
+        "list-products": "Loading products",
+        "get-product": "Loading product",
+        "get-category": "Loading category",
+        "list-categories": "Loading categories",
+        "get-cart": "Loading cart",
+        "list-orders": "Loading orders",
+        "get-order": "Loading order",
+        "list-wishlist": "Loading wishlist",
+        "add-cart-item": "Adding to cart",
+        "set-cart-item-qty": "Updating quantity",
+        "remove-cart-item": "Removing item",
+        "clear-cart": "Clearing cart",
+        "remove-from-wishlist": "Updating wishlist",
+        "cancel-order": "Cancelling order",
+        "create-checkout-session": "Creating payment page"
+      };
+      return labels[name] || "Updating the storefront";
+    }
+
+    function mutationNotice(name) {
+      const notices = {
+        "add-cart-item": "Added to cart.",
+        "set-cart-item-qty": "Cart quantity updated.",
+        "remove-cart-item": "Item removed from the cart.",
+        "clear-cart": "Cart cleared.",
+        "remove-from-wishlist": "Removed from your wishlist.",
+        "cancel-order": "Order cancelled.",
+        "create-checkout-session": "Payment page ready."
+      };
+      return notices[name] || "Store updated.";
+    }
+
+    function errorResult(error) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: String(error && error.message ? error.message : error) }]
+      };
+    }
+
+    function isErrorResult(result) {
+      return !!(result && result.isError);
+    }
+
+    function openLink(url) {
+      const target = String(url || "");
+      if (!/^https?:\/\//i.test(target)) return;
+      function fallback() {
+        try {
+          if (typeof window.open === "function") window.open(target, "_blank", "noopener,noreferrer");
+        } catch (error) {
+          console.warn("Malawi Store could not open the payment page:", error);
+        }
+      }
+      request("ui/open-link", { url: target }, 3000).then(function (result) {
+        if (result && result.isError) fallback();
+      }).catch(fallback);
+    }
+
+    // Reads replace the current view, but keep it on screen behind the busy banner
+    // so the user never loses their place while the store responds.
     async function runTool(name, args) {
+      if (busy) return;
       busy = true;
+      busyLabel = busyLabelFor(name);
+      notice = "";
       lastAction = name;
       pendingCancel = "";
       render();
@@ -745,14 +885,80 @@ export const storeAppHtml = String.raw`<!doctype html>
         lastArgs = args || {};
         lastResult = result;
       } catch (error) {
-        lastResult = { isError: true, content: [{ type: "text", text: String(error && error.message ? error.message : error) }] };
-      } finally {
-        busy = false;
-        render();
+        lastResult = errorResult(error);
       }
+      busy = false;
+      render();
+    }
+
+    // Mutations run the write, then re-fetch the entity the user is looking at.
+    // The mutation payload is never rendered on its own, so the same view stays
+    // in place with a short confirmation instead of swapping to raw data.
+    async function runMutation(name, args, followUp) {
+      if (busy) return;
+      busy = true;
+      busyLabel = busyLabelFor(name);
+      notice = "";
+      lastAction = name;
+      pendingCancel = "";
+      render();
+      try {
+        const result = await callServerTool({ name: name, arguments: args || {} });
+        if (isErrorResult(result)) {
+          lastResult = result;
+          busy = false;
+          render();
+          return;
+        }
+        notice = mutationNotice(name);
+        if (!followUp || !followUp.name) {
+          // Keep the current entity on screen; only the notice changes.
+          busy = false;
+          render();
+          return;
+        }
+        busyLabel = busyLabelFor(followUp.name);
+        render();
+        const refreshed = await callServerTool({
+          name: followUp.name,
+          arguments: followUp.args || {}
+        });
+        lastArgs = followUp.args || {};
+        lastResult = refreshed;
+      } catch (error) {
+        lastResult = errorResult(error);
+      }
+      busy = false;
+      render();
+    }
+
+    // Checkout is the one action that legitimately opens a new view: the store
+    // returns a payment page, so show it with the real URL rather than refresh
+    // the order the user just left.
+    async function runCheckout(orderId) {
+      if (busy) return;
+      busy = true;
+      busyLabel = busyLabelFor("create-checkout-session");
+      notice = "";
+      lastAction = "create-checkout-session";
+      pendingCancel = "";
+      render();
+      try {
+        const result = await callServerTool({
+          name: "create-checkout-session",
+          arguments: { orderId: orderId }
+        });
+        if (!isErrorResult(result)) notice = mutationNotice("create-checkout-session");
+        lastResult = result;
+      } catch (error) {
+        lastResult = errorResult(error);
+      }
+      busy = false;
+      render();
     }
 
     root.addEventListener("click", function (event) {
+      if (busy) return;
       const target = event.target && event.target.closest ? event.target.closest("[data-action]") : null;
       if (!target) return;
       const action = target.getAttribute("data-action");
@@ -764,32 +970,44 @@ export const storeAppHtml = String.raw`<!doctype html>
       }
       if (action === "product") { runTool("get-product", { id: target.getAttribute("data-id") }); return; }
       if (action === "add-variant") {
-        runTool("add-cart-item", {
-          productId: target.getAttribute("data-product"),
-          variantId: target.getAttribute("data-variant"),
-          qty: 1
-        });
+        const productId = target.getAttribute("data-product") || (lastArgs && lastArgs.id) || "";
+        const variantId = target.getAttribute("data-variant") || "";
+        if (!productId || !variantId) return;
+        runMutation(
+          "add-cart-item",
+          { productId: productId, variantId: variantId, qty: 1 },
+          { name: "get-product", args: { id: productId } }
+        );
         return;
       }
       if (action === "qty") {
-        runTool("set-cart-item-qty", {
-          itemId: target.getAttribute("data-item"),
-          qty: Number(target.getAttribute("data-qty"))
-        });
+        const itemId = target.getAttribute("data-item") || "";
+        if (!itemId) return;
+        runMutation(
+          "set-cart-item-qty",
+          { itemId: itemId, qty: Number(target.getAttribute("data-qty")) },
+          { name: "get-cart", args: {} }
+        );
         return;
       }
       if (action === "remove-line") {
-        runTool("remove-cart-item", { itemId: target.getAttribute("data-item") });
+        const itemId = target.getAttribute("data-item") || "";
+        if (!itemId) return;
+        runMutation("remove-cart-item", { itemId: itemId }, { name: "get-cart", args: {} });
         return;
       }
       if (action === "clear-cart") {
-        runTool("clear-cart", {});
+        runMutation("clear-cart", {}, { name: "get-cart", args: {} });
         return;
       }
       if (action === "remove-wishlist") {
-        runTool("remove-from-wishlist", { productId: target.getAttribute("data-product") }).then(function () {
-          if (!lastResult || !lastResult.isError) runTool("list-wishlist", {});
-        });
+        const productId = target.getAttribute("data-product") || "";
+        if (!productId) return;
+        runMutation(
+          "remove-from-wishlist",
+          { productId: productId },
+          { name: "list-wishlist", args: {} }
+        );
         return;
       }
       if (action === "cancel-order") {
@@ -800,7 +1018,21 @@ export const storeAppHtml = String.raw`<!doctype html>
           render();
           return;
         }
-        runTool("cancel-order", { id: id });
+        runMutation(
+          "cancel-order",
+          { id: id },
+          view === "order" ? { name: "get-order", args: { id: id } } : { name: "list-orders", args: {} }
+        );
+        return;
+      }
+      if (action === "pay-order") {
+        const orderId = target.getAttribute("data-id") || "";
+        if (!orderId) return;
+        runCheckout(orderId);
+        return;
+      }
+      if (action === "open-checkout") {
+        openLink(target.getAttribute("data-url"));
         return;
       }
       if (action === "keep-order") {
