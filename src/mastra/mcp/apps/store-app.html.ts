@@ -196,6 +196,33 @@ export const storeAppHtml = String.raw`<!doctype html>
     .order ul { list-style: none; margin: 13px 0; padding: 0; border-top: 1px solid var(--line); }
     .order li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
     .order li:last-child { border-bottom: 0; }
+    .order-line {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      width: 100%; padding: 0; text-align: left; color: inherit;
+    }
+    .order-line:hover { color: var(--clay); }
+    .order-line:hover .pill { border-color: var(--clay); color: var(--clay); }
+    .order-line-side { display: inline-flex; align-items: center; gap: 8px; }
+    .reviews { margin-top: 18px; padding-top: 16px; }
+    .reviews-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 6px; }
+    .reviews-head h2 { margin-bottom: 2px; }
+    .review-form {
+      display: grid; gap: 10px; margin: 12px 0;
+      background: var(--surface-2); border: 1px solid var(--line); border-radius: 16px; padding: 14px;
+    }
+    .review-form h3 { margin: 0; }
+    .review-form label {
+      display: grid; gap: 5px; font-size: 10px; font-weight: 800;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    }
+    .review-form select, .review-form input, .review-form textarea {
+      font: inherit; font-size: 14px; color: var(--ink); background: var(--surface);
+      border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; width: 100%;
+    }
+    .review-form textarea { resize: vertical; min-height: 86px; }
+    .review-form select:focus, .review-form input:focus, .review-form textarea:focus {
+      outline: 2px solid var(--gold); outline-offset: 1px;
+    }
     .review { border-top: 1px solid var(--line); padding: 14px 0; }
     .review:first-child { border-top: 0; }
     .stars { color: var(--gold); letter-spacing: 0.08em; font-size: 14px; }
@@ -370,6 +397,8 @@ export const storeAppHtml = String.raw`<!doctype html>
     let lastResult = null;
     let lastAction = "";
     let pendingCancel = "";
+    let pendingReviewDelete = "";
+    let reviewDraft = null;
     let busy = false;
     let busyLabel = "";
     let notice = "";
@@ -566,6 +595,87 @@ export const storeAppHtml = String.raw`<!doctype html>
           emptyState("No products found", "This catalog has no products to show right now."));
     }
 
+    function renderReviewForm(draft, productId) {
+      const review = draft.review || {};
+      const rating = Math.max(1, Math.min(5, Number(draft.rating || review.rating || 5)));
+      const options = [5, 4, 3, 2, 1].map(function (value) {
+        return '<option value="' + value + '"' + (value === rating ? ' selected' : '') + '>' +
+          esc(stars(value)) + '</option>';
+      }).join("");
+      return '<form class="review-form" data-review-form>' +
+        '<h3>' + (draft.mode === "edit" ? "Edit your review" : "Write a review") + '</h3>' +
+        '<label>Rating<select name="rating">' + options + '</select></label>' +
+        '<label>Title<input name="title" type="text" maxlength="120" value="' + esc(review.title || "") + '" /></label>' +
+        '<label>Review<textarea name="body" rows="4">' + esc(review.body || "") + '</textarea></label>' +
+        '<div class="row end">' +
+          '<button type="button" class="link" data-action="cancel-review">Cancel</button>' +
+          '<button type="button" class="small" data-action="submit-review">' +
+            (draft.mode === "edit" ? "Save changes" : "Post review") +
+          '</button>' +
+        '</div>' +
+      '</form>';
+    }
+
+    function renderReviews(detail) {
+      const product = detail.product || {};
+      const productId = product.id || "";
+      const summary = detail.reviews;
+      const viewer = detail.viewer;
+      const reviews = summary && Array.isArray(summary.reviews) ? summary.reviews : [];
+      const signedIn = !!(viewer && viewer.id);
+      const ownReview = signedIn
+        ? reviews.filter(function (review) { return review.user_id === viewer.id; })[0]
+        : null;
+      const draft = reviewDraft && reviewDraft.productId === productId ? reviewDraft : null;
+      const count = summary ? Number(summary.count || reviews.length) : 0;
+      const average = summary ? Number(summary.average || 0) : 0;
+
+      const summaryLine = summary
+        ? '<div class="row"><span class="stars">' + stars(average) + '</span>' +
+          '<span class="muted small">' + esc(average.toFixed(1)) + ' · ' + count +
+          ' review' + (count === 1 ? "" : "s") + '</span></div>'
+        : '<p class="muted small">Reviews are not loaded for this product.</p>';
+
+      const head = '<div class="reviews-head"><div><h2>Reviews</h2>' + summaryLine + '</div>' +
+        '<div class="row">' +
+          (summary && signedIn && !ownReview && !draft
+            ? '<button class="small" data-action="write-review" data-product="' + esc(productId) + '">Write a review</button>'
+            : '') +
+          (!summary
+            ? '<button class="link" data-action="refresh-reviews" data-product="' + esc(productId) + '">Load reviews</button>'
+            : '') +
+        '</div></div>';
+
+      const list = reviews.map(function (review) {
+        const mine = signedIn && review.user_id === viewer.id;
+        const confirming = pendingReviewDelete === review.id;
+        return '<article class="review">' +
+          '<div class="row between"><strong>' + esc(review.title || "Review") + '</strong>' +
+            '<span class="stars">' + stars(review.rating) + '</span></div>' +
+          '<p class="muted small">' + esc(review.author || "Customer") + ' · ' +
+            esc(shortDate(review.created_at)) +
+            (mine ? ' · <span class="pill">Your review</span>' : '') + '</p>' +
+          '<p>' + esc(review.body || "") + '</p>' +
+          (mine
+            ? '<div class="row end">' +
+                (confirming
+                  ? '<span class="muted small">Delete this review?</span>' +
+                    '<button class="link danger" data-action="delete-review" data-review="' + esc(review.id) + '">Confirm delete</button>' +
+                    '<button class="link" data-action="keep-review">Keep</button>'
+                  : '<button class="link" data-action="edit-review" data-review="' + esc(review.id) + '">Edit</button>' +
+                    '<button class="link danger" data-action="delete-review" data-review="' + esc(review.id) + '">Delete</button>') +
+              '</div>'
+            : '') +
+        '</article>';
+      }).join("");
+
+      return '<section class="panel reviews" id="reviews">' +
+        head +
+        (draft ? renderReviewForm(draft, productId) : "") +
+        (list || (summary ? '<p class="muted">No written reviews yet.</p>' : "")) +
+      '</section>';
+    }
+
     function renderProduct(detail) {
       const product = detail.product || {};
       const variants = Array.isArray(detail.variants) ? detail.variants : [];
@@ -590,7 +700,8 @@ export const storeAppHtml = String.raw`<!doctype html>
               '<h3>Choose a variant</h3><div class="table-wrap"><table><thead><tr><th>Variant</th><th>Price</th><th>Stock</th><th class="right"></th></tr></thead><tbody>' + rows + '</tbody></table></div>' :
               '<p class="muted">This product has no variants.</p>') +
           '</div>' +
-        '</section>');
+        '</section>' +
+        renderReviews(detail));
     }
 
     function cartLine(item) {
@@ -625,6 +736,7 @@ export const storeAppHtml = String.raw`<!doctype html>
     function orderCard(order) {
       const lines = Array.isArray(order.lines) ? order.lines : [];
       const confirming = pendingCancel === order.id;
+      const paid = order.status === "paid";
       return '<article class="order">' +
         '<div class="order-head"><div><h2>' + esc(order.status === "paid" ? "Paid order" : order.status === "cancelled" ? "Cancelled order" : "Pending order") + '</h2>' +
           '<div class="order-id">' + esc(order.id) + ' · ' + esc(shortDate(order.created_at)) + '</div></div>' +
@@ -635,8 +747,14 @@ export const storeAppHtml = String.raw`<!doctype html>
               (confirming ? '<button class="link" data-action="keep-order">Keep order</button>' : '') : '') +
           '</div></div>' +
         '<ul>' + lines.map(function (line) {
-          return '<li><span>' + esc(line.qty) + ' × ' + esc(line.name) + '</span><span>' + esc(money(line.line_total_cents, order.currency)) + '</span></li>';
+          const label = '<span>' + esc(line.qty) + ' × ' + esc(line.name) + '</span>';
+          const price = '<span>' + esc(money(line.line_total_cents, order.currency)) + '</span>';
+          if (!paid || !line.product_id) return '<li>' + label + price + '</li>';
+          return '<li><button class="order-line" data-action="product-reviews" data-id="' + esc(line.product_id) + '" title="Open product and reviews">' +
+            label + '<span class="order-line-side">' + price + '<span class="pill">Review</span></span>' +
+          '</button></li>';
         }).join("") + '</ul>' +
+        (paid ? '<p class="muted small">Open a paid item to read or write its review.</p>' : '') +
         '<div class="row between"><span class="muted small">Subtotal</span><strong>' + esc(money(order.subtotal_cents, order.currency)) + '</strong></div>' +
       '</article>';
     }
@@ -704,6 +822,7 @@ export const storeAppHtml = String.raw`<!doctype html>
 
     function renderReviewSummary(summary) {
       const reviews = Array.isArray(summary.reviews) ? summary.reviews : [];
+      const productId = lastArgs && lastArgs.productId ? lastArgs.productId : "";
       const list = reviews.map(function (review) {
         return '<article class="review"><div class="row between"><strong>' + esc(review.title || "Review") + '</strong><span class="stars">' + stars(review.rating) + '</span></div>' +
           '<p class="muted small">' + esc(review.author || "Customer") + ' · ' + esc(shortDate(review.created_at)) + '</p>' +
@@ -711,7 +830,9 @@ export const storeAppHtml = String.raw`<!doctype html>
       }).join("");
       return shell("Reviews", summary.count + " review" + (summary.count === 1 ? "" : "s") + " for this product.",
         '<section class="panel"><div class="row between"><div><div class="big-stars stars">' + stars(summary.average) + '</div>' +
-          '<p class="muted small">' + esc(Number(summary.average || 0).toFixed(1)) + ' average from ' + esc(summary.count) + ' reviews</p></div></div>' +
+          '<p class="muted small">' + esc(Number(summary.average || 0).toFixed(1)) + ' average from ' + esc(summary.count) + ' reviews</p></div>' +
+          (productId ? '<button class="small" data-action="product-reviews" data-id="' + esc(productId) + '">View product &amp; reviews</button>' : '') +
+        '</div>' +
           (list || '<p class="muted">No written reviews yet.</p>') + '</section>');
     }
 
@@ -861,13 +982,18 @@ export const storeAppHtml = String.raw`<!doctype html>
         "list-orders": "Loading orders",
         "get-order": "Loading order",
         "list-wishlist": "Loading wishlist",
+        "get-me": "Loading account",
+        "get-product-reviews": "Loading reviews",
         "add-cart-item": "Adding to cart",
         "set-cart-item-qty": "Updating quantity",
         "remove-cart-item": "Removing item",
         "clear-cart": "Clearing cart",
         "remove-from-wishlist": "Updating wishlist",
         "cancel-order": "Cancelling order",
-        "create-checkout-session": "Creating payment page"
+        "create-checkout-session": "Creating payment page",
+        "create-review": "Posting review",
+        "update-review": "Saving review",
+        "delete-review": "Deleting review"
       };
       return labels[name] || "Updating the storefront";
     }
@@ -880,7 +1006,10 @@ export const storeAppHtml = String.raw`<!doctype html>
         "clear-cart": "Cart cleared.",
         "remove-from-wishlist": "Removed from your wishlist.",
         "cancel-order": "Order cancelled.",
-        "create-checkout-session": "Payment page ready."
+        "create-checkout-session": "Payment page ready.",
+        "create-review": "Review posted.",
+        "update-review": "Review updated.",
+        "delete-review": "Review deleted."
       };
       return notices[name] || "Store updated.";
     }
@@ -911,6 +1040,111 @@ export const storeAppHtml = String.raw`<!doctype html>
       }).catch(fallback);
     }
 
+    async function safeCall(name, args) {
+      try {
+        return await callServerTool({ name: name, arguments: args || {} });
+      } catch (error) {
+        return errorResult(error);
+      }
+    }
+
+    // The product page is a bundle: the product, its public reviews, and the
+    // signed-in customer so the app knows which review it may edit or delete.
+    async function loadProductBundle(productId) {
+      const productResult = await safeCall("get-product", { id: productId });
+      if (isErrorResult(productResult)) return productResult;
+      const reviewsResult = await safeCall("get-product-reviews", { productId: productId });
+      const viewerResult = await safeCall("get-me", {});
+      const detail = payload(productResult) || {};
+      detail.reviews = isErrorResult(reviewsResult) ? null : payload(reviewsResult);
+      detail.viewer = isErrorResult(viewerResult) ? null : payload(viewerResult);
+      return {
+        isError: false,
+        content: productResult.content || [],
+        structuredContent: detail
+      };
+    }
+
+    function revealReviews() {
+      try {
+        const section = document.getElementById("reviews");
+        if (section && typeof section.scrollIntoView === "function") {
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      } catch (error) {
+        // Scrolling is a nicety; the reviews are already rendered.
+      }
+    }
+
+    async function openProduct(productId, section) {
+      if (!productId || busy) return;
+      busy = true;
+      busyLabel = busyLabelFor("get-product");
+      notice = "";
+      lastAction = "get-product";
+      pendingCancel = "";
+      pendingReviewDelete = "";
+      reviewDraft = null;
+      render();
+      try {
+        lastResult = await loadProductBundle(productId);
+        lastArgs = { id: productId };
+      } catch (error) {
+        lastResult = errorResult(error);
+      }
+      busy = false;
+      render();
+      if (section === "reviews") revealReviews();
+    }
+
+    function readReviewField(target, name) {
+      const form = target && target.closest ? target.closest("[data-review-form]") : null;
+      const field = form && form.querySelector ? form.querySelector('[name="' + name + '"]') : null;
+      return field ? String(field.value === undefined ? "" : field.value) : "";
+    }
+
+    function submitReview(target) {
+      const draft = reviewDraft;
+      if (!draft || busy) return;
+      const rating = Number(readReviewField(target, "rating")) || Number(draft.review && draft.review.rating) || 5;
+      const title = readReviewField(target, "title");
+      const body = readReviewField(target, "body");
+      const args = draft.mode === "edit"
+        ? { reviewId: draft.reviewId, rating: rating, title: title, body: body }
+        : { productId: draft.productId, rating: rating, title: title, body: body };
+      runReviewMutation(draft.mode === "edit" ? "update-review" : "create-review", args, draft.productId);
+    }
+
+    async function runReviewMutation(name, args, productId) {
+      if (busy) return;
+      busy = true;
+      busyLabel = busyLabelFor(name);
+      notice = "";
+      lastAction = name;
+      pendingCancel = "";
+      pendingReviewDelete = "";
+      reviewDraft = null;
+      render();
+      try {
+        const result = await callServerTool({ name: name, arguments: args || {} });
+        if (isErrorResult(result)) {
+          lastResult = result;
+          busy = false;
+          render();
+          return;
+        }
+        notice = mutationNotice(name);
+        busyLabel = busyLabelFor("get-product-reviews");
+        render();
+        lastResult = await loadProductBundle(productId);
+        lastArgs = { id: productId };
+      } catch (error) {
+        lastResult = errorResult(error);
+      }
+      busy = false;
+      render();
+    }
+
     // Reads replace the current view, but keep it on screen behind the busy banner
     // so the user never loses their place while the store responds.
     async function runTool(name, args) {
@@ -920,6 +1154,8 @@ export const storeAppHtml = String.raw`<!doctype html>
       notice = "";
       lastAction = name;
       pendingCancel = "";
+      pendingReviewDelete = "";
+      reviewDraft = null;
       render();
       try {
         const result = await callServerTool({ name: name, arguments: args || {} });
@@ -942,6 +1178,7 @@ export const storeAppHtml = String.raw`<!doctype html>
       notice = "";
       lastAction = name;
       pendingCancel = "";
+      pendingReviewDelete = "";
       render();
       try {
         const result = await callServerTool({ name: name, arguments: args || {} });
@@ -960,10 +1197,25 @@ export const storeAppHtml = String.raw`<!doctype html>
         }
         busyLabel = busyLabelFor(followUp.name);
         render();
-        const refreshed = await callServerTool({
+        const previous = payload(lastResult);
+        let refreshed = await callServerTool({
           name: followUp.name,
           arguments: followUp.args || {}
         });
+        // Keep the review bundle attached when a product is re-fetched after a
+        // cart action, so the reviews section does not disappear.
+        if (followUp.name === "get-product" && previous && previous.product) {
+          const detail = payload(refreshed);
+          if (detail && detail.product) {
+            if (previous.reviews !== undefined) detail.reviews = previous.reviews;
+            if (previous.viewer !== undefined) detail.viewer = previous.viewer;
+            refreshed = {
+              isError: false,
+              content: refreshed.content || [],
+              structuredContent: detail
+            };
+          }
+        }
         lastArgs = followUp.args || {};
         lastResult = refreshed;
       } catch (error) {
@@ -983,6 +1235,8 @@ export const storeAppHtml = String.raw`<!doctype html>
       notice = "";
       lastAction = "create-checkout-session";
       pendingCancel = "";
+      pendingReviewDelete = "";
+      reviewDraft = null;
       render();
       try {
         const result = await callServerTool({
@@ -1009,7 +1263,63 @@ export const storeAppHtml = String.raw`<!doctype html>
         runTool("list-products", { categoryId: categoryId, limit: 24 });
         return;
       }
-      if (action === "product") { runTool("get-product", { id: target.getAttribute("data-id") }); return; }
+      if (action === "product") { openProduct(target.getAttribute("data-id"), ""); return; }
+      if (action === "product-reviews") {
+        openProduct(target.getAttribute("data-id"), "reviews");
+        return;
+      }
+      if (action === "refresh-reviews") {
+        openProduct(target.getAttribute("data-product"), "reviews");
+        return;
+      }
+      if (action === "write-review") {
+        const productId = target.getAttribute("data-product") || (viewData && viewData.product ? viewData.product.id : "");
+        if (!productId || busy) return;
+        pendingReviewDelete = "";
+        reviewDraft = { mode: "create", productId: productId };
+        render();
+        return;
+      }
+      if (action === "edit-review") {
+        const reviewId = target.getAttribute("data-review") || "";
+        const reviews = viewData && viewData.reviews && Array.isArray(viewData.reviews.reviews)
+          ? viewData.reviews.reviews
+          : [];
+        const review = reviews.filter(function (item) { return item.id === reviewId; })[0];
+        if (!review || !viewData || !viewData.product || busy) return;
+        pendingReviewDelete = "";
+        reviewDraft = { mode: "edit", productId: viewData.product.id, reviewId: reviewId, review: review };
+        render();
+        return;
+      }
+      if (action === "cancel-review") {
+        reviewDraft = null;
+        render();
+        return;
+      }
+      if (action === "submit-review") {
+        submitReview(target);
+        return;
+      }
+      if (action === "delete-review") {
+        const reviewId = target.getAttribute("data-review") || "";
+        if (!reviewId || busy) return;
+        if (pendingReviewDelete !== reviewId) {
+          pendingReviewDelete = reviewId;
+          reviewDraft = null;
+          render();
+          return;
+        }
+        const productId = viewData && viewData.product ? viewData.product.id : "";
+        if (!productId) return;
+        runReviewMutation("delete-review", { reviewId: reviewId }, productId);
+        return;
+      }
+      if (action === "keep-review") {
+        pendingReviewDelete = "";
+        render();
+        return;
+      }
       if (action === "add-variant") {
         const productId = target.getAttribute("data-product") || (lastArgs && lastArgs.id) || "";
         const variantId = target.getAttribute("data-variant") || "";

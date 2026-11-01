@@ -12,7 +12,10 @@ type LaunchedApp = {
   root: { innerHTML: string };
   sent: Array<Record<string, any>>;
   deliver: (data: unknown) => void;
-  click: (attributes: Record<string, string>) => void;
+  click: (
+    attributes: Record<string, string>,
+    fields?: Record<string, string>,
+  ) => void;
 };
 
 /**
@@ -79,10 +82,17 @@ function launchStoreApp(html: string): LaunchedApp {
     sent,
     deliver: (data: unknown) =>
       listeners.forEach((listener) => listener({ source: parent, data })),
-    click: (attributes: Record<string, string>) => {
-      const target = {
+    click: (attributes: Record<string, string>, fields: Record<string, string> = {}) => {
+      const form = {
+        querySelector: (selector: string) => {
+          const name = /^\[name="([^"]+)"\]$/.exec(selector)?.[1];
+          return name && name in fields ? { value: fields[name] } : null;
+        },
+      };
+      const target: any = {
         getAttribute: (name: string) => attributes[name] ?? null,
-        closest: () => target,
+        closest: (selector: string) =>
+          selector === '[data-review-form]' ? form : target,
       };
       clickListeners.forEach((listener) => listener({ target }));
     },
@@ -201,6 +211,79 @@ const wishlistItem = {
   },
   added_at: '2026-01-01T00:00:00Z',
 };
+
+const viewer = {
+  id: 'user-1',
+  email: 'amina@example.com',
+  name: 'Amina Banda',
+  role: 'customer' as const,
+  email_verified: true,
+  created_at: '2026-01-01T00:00:00Z',
+};
+
+const ownReview = {
+  id: 'review-1',
+  user_id: 'user-1',
+  author: 'Amina Banda',
+  product_id: 'product-1',
+  rating: 5,
+  title: 'Beautiful tunic',
+  body: 'The embroidery is lovely.',
+  created_at: '2026-01-02T00:00:00Z',
+};
+
+const otherReview = {
+  id: 'review-2',
+  user_id: 'user-2',
+  author: 'Chidi Phiri',
+  product_id: 'product-1',
+  rating: 4,
+  title: 'Great fit',
+  body: 'Runs true to size.',
+  created_at: '2026-01-03T00:00:00Z',
+};
+
+const emptyReviewSummary = {
+  average: 0,
+  count: 0,
+  reviews: [],
+};
+
+const ownReviewSummary = {
+  average: 5,
+  count: 1,
+  reviews: [ownReview],
+};
+
+async function answerProductLoad(
+  app: LaunchedApp,
+  detail: unknown,
+  summary: unknown,
+  currentViewer: unknown,
+  fromIndex = 0,
+) {
+  const steps: Array<[string, unknown]> = [
+    ['get-product', detail],
+    ['get-product-reviews', summary],
+    ['get-me', currentViewer],
+  ];
+  for (const [name, value] of steps) {
+    const call = toolCalls(app)
+      .slice(fromIndex)
+      .find((candidate) => candidate.params.name === name);
+    if (!call) throw new Error(`The app did not call ${name}`);
+    deliverToolResult(app, call.id, value);
+    await settle();
+  }
+}
+
+function showProduct(app: LaunchedApp, detail: unknown) {
+  app.deliver({
+    jsonrpc: '2.0',
+    method: 'ui/notifications/tool-result',
+    params: { structuredContent: detail },
+  });
+}
 
 describe('Malawi Store MCP App', () => {
   it('links every agent tool to the store app resource', () => {
@@ -681,6 +764,273 @@ describe('Malawi Store MCP App', () => {
 
     app.deliver({ jsonrpc: '2.0', id: open?.id, result: {} });
     await settle();
+  });
+
+  it('opens a product with its reviews and own-review controls', async () => {
+    const resource = await storeAppServer.readResource(STORE_APP_URI);
+    const app = launchStoreApp(resource.contents[0].text ?? '');
+
+    app.deliver({
+      jsonrpc: '2.0',
+      method: 'ui/notifications/tool-result',
+      params: { structuredContent: [productDetail.product] },
+    });
+    app.click({ 'data-action': 'product', 'data-id': 'product-1' });
+
+    expect(app.root.innerHTML).toContain('Loading product');
+    expect(app.root.innerHTML).toContain('Balaka Embroidered Tunic');
+
+    const calls = toolCalls(app);
+    expect(calls[0].params).toEqual({
+      name: 'get-product',
+      arguments: { id: 'product-1' },
+    });
+
+    deliverToolResult(app, calls[0].id, productDetail);
+    await settle();
+
+    const reviewCall = toolCalls(app).find(
+      (call) => call.params.name === 'get-product-reviews',
+    );
+    expect(reviewCall?.params).toEqual({
+      name: 'get-product-reviews',
+      arguments: { productId: 'product-1' },
+    });
+
+    deliverToolResult(app, reviewCall?.id, ownReviewSummary);
+    await settle();
+
+    const meCall = toolCalls(app).find(
+      (call) => call.params.name === 'get-me',
+    );
+    expect(meCall?.params).toEqual({ name: 'get-me', arguments: {} });
+    deliverToolResult(app, meCall?.id, viewer);
+    await settle();
+
+    expect(app.root.innerHTML).toContain('Balaka Embroidered Tunic');
+    expect(app.root.innerHTML).toContain('Reviews');
+    expect(app.root.innerHTML).toContain('Beautiful tunic');
+    expect(app.root.innerHTML).toContain('Your review');
+    expect(app.root.innerHTML).toContain('data-action="edit-review"');
+    expect(app.root.innerHTML).toContain('data-action="delete-review"');
+    expect(app.root.innerHTML).not.toContain('data-action="write-review"');
+  });
+
+  it('creates a review from the product page and refreshes it in place', async () => {
+    const resource = await storeAppServer.readResource(STORE_APP_URI);
+    const app = launchStoreApp(resource.contents[0].text ?? '');
+
+    showProduct(app, {
+      ...productDetail,
+      reviews: emptyReviewSummary,
+      viewer,
+    });
+    expect(app.root.innerHTML).toContain('data-action="write-review"');
+
+    app.click({ 'data-action': 'write-review', 'data-product': 'product-1' });
+    expect(app.root.innerHTML).toContain('data-review-form');
+    expect(app.root.innerHTML).toContain('Post review');
+
+    const before = toolCalls(app).length;
+    app.click(
+      { 'data-action': 'submit-review' },
+      { rating: '4', title: 'Lovely fabric', body: 'Fits well and feels soft.' },
+    );
+    expect(app.root.innerHTML).toContain('Posting review');
+    expect(app.root.innerHTML).toContain('Balaka Embroidered Tunic');
+
+    const createCall = toolCalls(app)[before];
+    expect(createCall.params).toEqual({
+      name: 'create-review',
+      arguments: {
+        productId: 'product-1',
+        rating: 4,
+        title: 'Lovely fabric',
+        body: 'Fits well and feels soft.',
+      },
+    });
+
+    deliverToolResult(app, createCall.id, {
+      ...ownReview,
+      rating: 4,
+      title: 'Lovely fabric',
+      body: 'Fits well and feels soft.',
+    });
+    await settle();
+
+    const createdSummary = {
+      average: 4,
+      count: 1,
+      reviews: [
+        {
+          ...ownReview,
+          rating: 4,
+          title: 'Lovely fabric',
+          body: 'Fits well and feels soft.',
+        },
+      ],
+    };
+    await answerProductLoad(
+      app,
+      productDetail,
+      createdSummary,
+      viewer,
+      before,
+    );
+
+    expect(app.root.innerHTML).toContain('Review posted.');
+    expect(app.root.innerHTML).toContain('Lovely fabric');
+    expect(app.root.innerHTML).toContain('data-action="edit-review"');
+    expect(app.root.innerHTML).not.toContain('data-review-form');
+    expect(app.root.innerHTML).not.toContain('data-action="write-review"');
+  });
+
+  it('edits and deletes the customer own review in place', async () => {
+    const resource = await storeAppServer.readResource(STORE_APP_URI);
+    const app = launchStoreApp(resource.contents[0].text ?? '');
+
+    showProduct(app, {
+      ...productDetail,
+      reviews: ownReviewSummary,
+      viewer,
+    });
+
+    app.click({ 'data-action': 'edit-review', 'data-review': 'review-1' });
+    expect(app.root.innerHTML).toContain('Edit your review');
+    expect(app.root.innerHTML).toContain('value="Beautiful tunic"');
+    expect(app.root.innerHTML).toContain('The embroidery is lovely.');
+
+    const editFrom = toolCalls(app).length;
+    app.click(
+      { 'data-action': 'submit-review' },
+      { rating: '4', title: 'Even better in person', body: 'Soft cotton.' },
+    );
+
+    const updateCall = toolCalls(app)[editFrom];
+    expect(updateCall.params).toEqual({
+      name: 'update-review',
+      arguments: {
+        reviewId: 'review-1',
+        rating: 4,
+        title: 'Even better in person',
+        body: 'Soft cotton.',
+      },
+    });
+
+    const updatedReview = {
+      ...ownReview,
+      rating: 4,
+      title: 'Even better in person',
+      body: 'Soft cotton.',
+    };
+    deliverToolResult(app, updateCall.id, updatedReview);
+    await settle();
+    await answerProductLoad(
+      app,
+      productDetail,
+      { average: 4, count: 1, reviews: [updatedReview] },
+      viewer,
+      editFrom,
+    );
+
+    expect(app.root.innerHTML).toContain('Review updated.');
+    expect(app.root.innerHTML).toContain('Even better in person');
+
+    const deleteFrom = toolCalls(app).length;
+    app.click({ 'data-action': 'delete-review', 'data-review': 'review-1' });
+    expect(app.root.innerHTML).toContain('Confirm delete');
+    expect(toolCalls(app)).toHaveLength(deleteFrom);
+
+    app.click({ 'data-action': 'delete-review', 'data-review': 'review-1' });
+    const deleteCall = toolCalls(app)[deleteFrom];
+    expect(deleteCall.params).toEqual({
+      name: 'delete-review',
+      arguments: { reviewId: 'review-1' },
+    });
+
+    deliverToolResult(app, deleteCall.id, { success: true });
+    await settle();
+    await answerProductLoad(
+      app,
+      productDetail,
+      emptyReviewSummary,
+      viewer,
+      deleteFrom,
+    );
+
+    expect(app.root.innerHTML).toContain('Review deleted.');
+    expect(app.root.innerHTML).toContain('No written reviews yet.');
+    expect(app.root.innerHTML).toContain('data-action="write-review"');
+    expect(app.root.innerHTML).not.toContain('Even better in person');
+  });
+
+  it('links paid order items to product reviews but not unpaid items', async () => {
+    const resource = await storeAppServer.readResource(STORE_APP_URI);
+    const app = launchStoreApp(resource.contents[0].text ?? '');
+
+    app.deliver({
+      jsonrpc: '2.0',
+      method: 'ui/notifications/tool-result',
+      params: { structuredContent: { ...pendingOrder, status: 'paid' } },
+    });
+
+    expect(app.root.innerHTML).toContain('Paid order');
+    expect(app.root.innerHTML).toContain('data-action="product-reviews"');
+    expect(app.root.innerHTML).toContain('data-id="product-1"');
+    expect(app.root.innerHTML).toContain('>Review</span>');
+
+    app.click({ 'data-action': 'product-reviews', 'data-id': 'product-1' });
+    expect(app.root.innerHTML).toContain('Loading product');
+    await answerProductLoad(
+      app,
+      productDetail,
+      ownReviewSummary,
+      viewer,
+    );
+    expect(app.root.innerHTML).toContain('Reviews');
+    expect(app.root.innerHTML).toContain('Beautiful tunic');
+
+    app.deliver({
+      jsonrpc: '2.0',
+      method: 'ui/notifications/tool-result',
+      params: { structuredContent: pendingOrder },
+    });
+    expect(app.root.innerHTML).toContain('Pending order');
+    expect(app.root.innerHTML).not.toContain('data-action="product-reviews"');
+
+    app.deliver({
+      jsonrpc: '2.0',
+      method: 'ui/notifications/tool-result',
+      params: {
+        structuredContent: { ...pendingOrder, status: 'cancelled' },
+      },
+    });
+    expect(app.root.innerHTML).toContain('Cancelled order');
+    expect(app.root.innerHTML).not.toContain('data-action="product-reviews"');
+  });
+
+  it('offers a product link from a standalone review summary', async () => {
+    const resource = await storeAppServer.readResource(STORE_APP_URI);
+    const app = launchStoreApp(resource.contents[0].text ?? '');
+
+    app.deliver({
+      jsonrpc: '2.0',
+      method: 'ui/notifications/tool-input',
+      params: { arguments: { productId: 'product-1' } },
+    });
+    app.deliver({
+      jsonrpc: '2.0',
+      method: 'ui/notifications/tool-result',
+      params: { structuredContent: ownReviewSummary },
+    });
+
+    expect(app.root.innerHTML).toContain('data-action="product-reviews"');
+
+    app.click({ 'data-action': 'product-reviews', 'data-id': 'product-1' });
+    expect(app.root.innerHTML).toContain('Loading product');
+    await answerProductLoad(app, productDetail, ownReviewSummary, viewer);
+    expect(app.root.innerHTML).toContain('Balaka Embroidered Tunic');
+    expect(app.root.innerHTML).toContain('Beautiful tunic');
   });
 
   it('allows only the placeholder image origin in the resource CSP', async () => {
