@@ -73,17 +73,10 @@ export const storeAppHtml = String.raw`<!doctype html>
     }
     .brand strong { display: block; font-family: var(--serif); font-size: 18px; letter-spacing: 0.01em; }
     .brand span { display: block; color: var(--muted); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
-    .top-actions { display: flex; gap: 6px; flex-wrap: wrap; }
     button {
       font: inherit; color: inherit; cursor: pointer; border: 0; background: none;
     }
     button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-    .ghost {
-      border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
-      padding: 7px 13px; font-size: 12px; font-weight: 600; color: var(--muted);
-      transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
-    }
-    .ghost:hover { border-color: var(--green); color: var(--green); transform: translateY(-1px); }
     .main { padding: 8px 4px 24px; }
     .eyebrow {
       color: var(--clay); font-size: 10px; font-weight: 800; letter-spacing: 0.16em;
@@ -198,10 +191,6 @@ export const storeAppHtml = String.raw`<!doctype html>
       padding: 28px 22px; text-align: center; box-shadow: var(--shadow);
     }
     .empty p, .error p, .success p { color: var(--muted); max-width: 48ch; margin: 6px auto 16px; }
-    .empty button, .error button, .success button {
-      background: var(--green); color: #fff; border-radius: 999px; padding: 9px 16px;
-      font-size: 12px; font-weight: 800;
-    }
     .success .check { display: inline-grid; place-items: center; width: 52px; height: 52px; border-radius: 999px; background: rgba(29, 92, 69, 0.15); color: var(--green); font-size: 28px; }
     .error { border-color: rgba(168, 50, 42, 0.35); }
     .json {
@@ -211,9 +200,6 @@ export const storeAppHtml = String.raw`<!doctype html>
     .busy { display: inline-flex; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; margin-bottom: 14px; }
     .spinner { width: 17px; height: 17px; border: 2px solid var(--line); border-top-color: var(--green); border-radius: 999px; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .footer { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; padding-top: 22px; border-top: 1px solid var(--line); margin-top: 26px; }
-    .footer button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 7px 13px; font-size: 11px; font-weight: 700; color: var(--muted); }
-    .footer button:hover { border-color: var(--green); color: var(--green); }
     .boot { min-height: 60vh; display: grid; place-items: center; text-align: center; color: var(--muted); }
     .boot h1 { color: var(--ink); }
     @media (max-width: 720px) {

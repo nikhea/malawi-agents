@@ -8,6 +8,87 @@ type ToolWithApp = {
   mcp?: { _meta?: { ui?: { resourceUri?: string } } };
 };
 
+type LaunchedApp = {
+  root: { innerHTML: string };
+  sent: Array<Record<string, any>>;
+  deliver: (data: unknown) => void;
+  click: (attributes: Record<string, string>) => void;
+};
+
+/**
+ * Runs the app's module script against a minimal fake host.
+ *
+ * The app is self-contained, so a DOM stub plus postMessage is enough to
+ * exercise the bridge, the initial render, and click-driven tool calls.
+ */
+function launchStoreApp(html: string): LaunchedApp {
+  const script = /<script type="module">([\s\S]*?)<\/script>/.exec(html)?.[1];
+  if (!script) throw new Error('App HTML is missing its module script');
+
+  const listeners: Array<(event: unknown) => void> = [];
+  const clickListeners: Array<(event: unknown) => void> = [];
+  const sent: Array<Record<string, any>> = [];
+  const root = {
+    innerHTML: '',
+    addEventListener: (type: string, fn: (event: unknown) => void) => {
+      if (type === 'click') clickListeners.push(fn);
+    },
+  };
+  const documentStub = {
+    getElementById: () => root,
+    documentElement: {
+      setAttribute: () => {},
+      getAttribute: () => null,
+      classList: { contains: () => false },
+      style: { setProperty: () => {}, colorScheme: '' },
+      getBoundingClientRect: () => ({ height: 600 }),
+    },
+    addEventListener: () => {},
+  };
+  const parent = {
+    postMessage: (message: Record<string, any>) => sent.push(message),
+  };
+  const windowStub = {
+    parent,
+    innerWidth: 800,
+    addEventListener: (type: string, fn: (event: unknown) => void) => {
+      if (type === 'message') listeners.push(fn);
+    },
+  };
+
+  new Function(
+    'window',
+    'document',
+    'console',
+    'requestAnimationFrame',
+    'ResizeObserver',
+    script,
+  )(
+    windowStub,
+    documentStub,
+    { warn: () => {}, log: () => {}, error: () => {} },
+    (fn: () => void) => fn(),
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+
+  return {
+    root,
+    sent,
+    deliver: (data: unknown) =>
+      listeners.forEach((listener) => listener({ source: parent, data })),
+    click: (attributes: Record<string, string>) => {
+      const target = {
+        getAttribute: (name: string) => attributes[name] ?? null,
+        closest: () => target,
+      };
+      clickListeners.forEach((listener) => listener({ target }));
+    },
+  };
+}
+
 describe('Malawi Store MCP App', () => {
   it('links every agent tool to the store app resource', () => {
     expect(Object.keys(storeAppTools).sort()).toEqual(
@@ -85,60 +166,12 @@ describe('Malawi Store MCP App', () => {
 
   it('renders the storefront without waiting for the host handshake', async () => {
     const resource = await storeAppServer.readResource(STORE_APP_URI);
-    const html = resource.contents[0].text ?? '';
-    const script = /<script type="module">([\s\S]*?)<\/script>/.exec(html)?.[1];
-    if (!script) throw new Error('App HTML is missing its module script');
-
-    const listeners: Array<(event: unknown) => void> = [];
-    const sent: Array<Record<string, unknown>> = [];
-    const root = {
-      innerHTML: '',
-      addEventListener: () => {},
-    };
-    const documentStub = {
-      getElementById: () => root,
-      documentElement: {
-        setAttribute: () => {},
-        getAttribute: () => null,
-        classList: { contains: () => false },
-        style: { setProperty: () => {}, colorScheme: '' },
-        getBoundingClientRect: () => ({ height: 600 }),
-      },
-      addEventListener: () => {},
-    };
-    const parent = {
-      postMessage: (message: Record<string, unknown>) => sent.push(message),
-    };
-    const windowStub = {
-      parent,
-      innerWidth: 800,
-      addEventListener: (type: string, fn: (event: unknown) => void) => {
-        if (type === 'message') listeners.push(fn);
-      },
-    };
-
-    new Function(
-      'window',
-      'document',
-      'console',
-      'requestAnimationFrame',
-      'ResizeObserver',
-      script,
-    )(
-      windowStub,
-      documentStub,
-      { warn: () => {}, log: () => {}, error: () => {} },
-      (fn: () => void) => fn(),
-      class {
-        observe() {}
-        disconnect() {}
-      },
-    );
+    const app = launchStoreApp(resource.contents[0].text ?? '');
 
     // The empty state replaces the boot screen even if no host replies.
-    expect(root.innerHTML).toContain('Ready when you are');
+    expect(app.root.innerHTML).toContain('Ready when you are');
 
-    const initialize = sent.find(
+    const initialize = app.sent.find(
       (message) => message.method === 'ui/initialize',
     );
     expect(initialize).toBeTruthy();
@@ -146,10 +179,7 @@ describe('Malawi Store MCP App', () => {
       '2026-01-26',
     );
 
-    const deliver = (data: unknown) =>
-      listeners.forEach((listener) => listener({ source: parent, data }));
-
-    deliver({
+    app.deliver({
       jsonrpc: '2.0',
       id: initialize?.id,
       result: {
@@ -161,10 +191,12 @@ describe('Malawi Store MCP App', () => {
     });
     await Promise.resolve();
     expect(
-      sent.some((message) => message.method === 'ui/notifications/initialized'),
+      app.sent.some(
+        (message) => message.method === 'ui/notifications/initialized',
+      ),
     ).toBe(true);
 
-    deliver({
+    app.deliver({
       jsonrpc: '2.0',
       method: 'ui/notifications/tool-result',
       params: {
@@ -185,8 +217,94 @@ describe('Malawi Store MCP App', () => {
       },
     });
 
-    expect(root.innerHTML).toContain('Balaka Embroidered Tunic');
-    expect(root.innerHTML).not.toContain('Connecting to the storefront app');
+    expect(app.root.innerHTML).toContain('Balaka Embroidered Tunic');
+    expect(app.root.innerHTML).not.toContain('Connecting to the storefront app');
+  });
+
+  it('does not render navigation to other entity pages', async () => {
+    const resource = await storeAppServer.readResource(STORE_APP_URI);
+    const html = resource.contents[0].text ?? '';
+
+    for (const action of [
+      'browse',
+      'open-cart',
+      'open-orders',
+      'open-wishlist',
+      'open-account',
+      'refresh',
+    ]) {
+      expect(html, `${action} should not be a global action`).not.toContain(
+        `data-action="${action}"`,
+      );
+    }
+
+    expect(html).not.toContain('<footer');
+  });
+
+  it('renders category images and drills from a category into its products', async () => {
+    const resource = await storeAppServer.readResource(STORE_APP_URI);
+    const app = launchStoreApp(resource.contents[0].text ?? '');
+
+    app.deliver({
+      jsonrpc: '2.0',
+      method: 'ui/notifications/tool-result',
+      params: {
+        structuredContent: {
+          result: [
+            {
+              id: 'cat-1',
+              name: 'Tops & Blouses',
+              slug: 'tops-blouses',
+              description: 'Shirts and blouses',
+              image_url: 'https://cdn.example.com/categories/tops.jpg',
+              created_at: '2026-01-01T00:00:00Z',
+            },
+          ],
+        },
+      },
+    });
+
+    expect(app.root.innerHTML).toContain(
+      'https://cdn.example.com/categories/tops.jpg',
+    );
+    expect(app.root.innerHTML).toContain('data-action="category-products"');
+    expect(app.root.innerHTML).toContain('data-id="cat-1"');
+
+    app.click({ 'data-action': 'category-products', 'data-id': 'cat-1' });
+
+    const call = app.sent.find(
+      (message) => message.method === 'tools/call',
+    ) as { id?: unknown; params?: { name?: string; arguments?: unknown } } | undefined;
+    expect(call?.params?.name).toBe('list-products');
+    expect(call?.params?.arguments).toEqual({
+      categoryId: 'cat-1',
+      limit: 24,
+    });
+
+    app.deliver({
+      jsonrpc: '2.0',
+      id: call?.id,
+      result: {
+        structuredContent: {
+          result: [
+            {
+              id: 'product-1',
+              name: 'Kitenge Blouse',
+              slug: 'kitenge-blouse',
+              price_cents: 2500,
+              currency: 'USD',
+              category_name: 'Tops & Blouses',
+              description: 'Printed blouse',
+              is_active: true,
+            },
+          ],
+        },
+      },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(app.root.innerHTML).toContain('Products in Tops &amp; Blouses');
+    expect(app.root.innerHTML).toContain('Kitenge Blouse');
   });
 
   it('allows only the placeholder image origin in the resource CSP', async () => {
