@@ -18,9 +18,9 @@ export const ordersDatasets: EntityDatasetSpec = {
         outcome: "tool-call",
         expectedToolCalls: [{ tool: "checkout-order", args: {} }],
         responseMustInclude: ["pending", "$72.95"],
-        mustNotCall: ["create-payment-intent"],
+        mustNotCall: ["create-payment-intent", "create-checkout-session"],
         notes:
-          "checkout-order freezes the cart, reserves stock, and returns a pending order. The live cart subtotal is 7295 cents.",
+          "checkout-order freezes the cart, reserves stock, and returns a pending order. It does not start payment; a payment link needs a separate explicit request. The live cart subtotal is 7295 cents.",
       },
       {
         coverage: "create",

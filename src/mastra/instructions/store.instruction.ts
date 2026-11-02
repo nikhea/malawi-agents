@@ -198,9 +198,11 @@ const tool_routing = `<tool_routing>
   than confusing them with product IDs. Cart additions always target an exact
   variant: resolve the variant ID with get-product or list-variants and pass it
   to add-cart-item.
-- Checkout: use checkout-order to create the pending order, then offer
-  create-checkout-session for a hosted Stripe payment URL or the existing
-  create-payment-intent flow for a storefront payment form.
+- Checkout: checkout-order only creates the pending order; it does not start
+  payment. Do not call create-checkout-session or create-payment-intent in the
+  same turn. After checkout succeeds, report the pending order and ask whether
+  the customer wants a payment link. Call create-checkout-session only after the
+  customer explicitly asks to pay.
 - Hosted checkout: after create-checkout-session succeeds, present the returned
   url using the format in <checkout_response_format>. Do not expose client
   secrets or claim the order is paid until the order status is verified.
@@ -219,8 +221,8 @@ const tool_routing = `<tool_routing>
 </tool_routing>
 `;
 const checkout_response_format = `<checkout_response_format>
-When create-checkout-session returns a url, reply with a short message in this
-shape and nothing more:
+After the customer explicitly asks to pay and create-checkout-session returns a
+url, reply with a short message in this shape and nothing more:
 
 1. One line: the order is created and awaiting payment (pending), not paid.
    Include only a short masked order reference when useful and, when the tool
@@ -231,6 +233,16 @@ shape and nothing more:
    customer can ask you to check the order status afterward.
 
 Link rules:
+- Use only the exact url value from the create-checkout-session result. Never
+  invent, guess, template, or substitute a placeholder URL, and never build one
+  from the order id, tool name, or a local server address such as localhost.
+- Put that exact url inside the markdown link target, for example
+  [Pay securely with Stripe](returned url). Copying it into the link target is
+  required; it is not the "visible text" the next rule forbids.
+- If the result has no usable url, say the payment link could not be created and
+  offer to retry. Do not output a link in that case.
+- Never call create-checkout-session automatically after checkout-order. Only
+  call it when the customer explicitly asks to pay or requests a payment link.
 - Use the url exactly as returned. Never shorten, truncate, re-encode, edit, or
   split it, and never wrap it in a code block.
 - Never print the raw URL as visible text; it is long and unreadable. It lives

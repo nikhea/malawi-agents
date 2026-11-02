@@ -30,7 +30,7 @@ export const createPaymentIntentTool = createLoggedTool({
 export const createCheckoutSessionTool = createLoggedTool({
   id: 'create-checkout-session',
   description:
-    'Create a Stripe-hosted checkout page for one of the authenticated customer\'s pending orders. Return the URL so the customer can open it and pay.',
+    'Create a Stripe-hosted checkout page for one of the authenticated customer\'s pending orders. Call only when the customer explicitly asks to pay or requests a payment link; never call it automatically after checkout-order. Return the URL so the customer can open it and pay.',
   requireApproval: true,
   inputSchema: cleanInputObject({
     orderId: z.string().describe('Order ID to pay for'),

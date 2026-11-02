@@ -16,7 +16,7 @@ const requestContextSchema = malawiContextSchema;
 export const checkoutOrderTool = createLoggedTool({
   id: 'checkout-order',
   description:
-    'Place an order from the authenticated customer\'s current cart. This freezes the cart, reserves stock, clears the cart, and returns a pending order. Confirm with the customer before calling this tool.',
+    'Place an order from the authenticated customer\'s current cart. This freezes the cart, reserves stock, clears the cart, and returns a pending order. Confirm with the customer before calling this tool. It creates no payment link or session; ask before calling create-checkout-session.',
   requireApproval: true,
   inputSchema: cleanInputObject({}),
   outputSchema: orderSchema,
