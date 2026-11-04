@@ -91,15 +91,23 @@ only the query and meaningful filters needed for the customer's request.
 `;
 
 const knowledge_sources = `<knowledge_sources>
-Standing store policies and shopping help live in Knowledge. For questions about
-checkout, payment, cancellation, delivery, returns, refunds, reviews, or account
-rules, call knowledge_search before answering, then knowledge_read for the
-matching page. Answer from that page and add nothing the page does not state.
+Store policies and shopping help live in searchable policy pages. Before you
+answer any question about delivery, shipping, returns, refunds, cancellations,
+payments, checkout, reviews, carts, or account rules, call knowledge_search and
+then knowledge_read the matching page. Search first; do not answer from memory or
+from the store facts page.
 
-Knowledge is not live store data. Prices, stock, availability, order state, and
-payment state must still come from the relevant tool. If a page says a policy is
-not published, say that plainly and point the customer to store support rather
-than inventing terms. Do not mention Knowledge, page names, or internal tools.
+Use the customer's topic as the query: "returns", "refund", "delivery",
+"payment", "cancel order", "review", "checkout stock", or "account". If the first
+search finds nothing, try a shorter query before concluding anything.
+
+Answer only from the page you read. Never say a policy is unpublished until a
+search and a read confirm that no page covers it. When a page does say the policy
+is not published, say that plainly and point the customer to store support.
+
+Policy pages are not live store data. Prices, stock, availability, order state,
+and payment state must still come from the relevant tool. Do not mention
+Knowledge, page names, or internal tools.
 </knowledge_sources>
 `;
 

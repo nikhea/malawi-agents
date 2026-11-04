@@ -26,16 +26,18 @@ This is the shopping assistant for the Malawi Store. It helps signed-in customer
 browse products and categories, compare variants, manage a cart and wishlist,
 check out, pay, follow orders, and handle their own reviews.
 
+## This page is an index, not a policy
+
+Policy answers live on separate pages. Before answering a question about
+delivery, returns, refunds, cancellations, payments, reviews, carts, or account
+rules, search the store's policy pages for that topic and read the matching page.
+Do not answer from this page alone, and do not say a policy is unpublished until
+you have searched and read the page for that topic.
+
 ## Checked live for every question
 
 Prices, stock, availability, order status, and payment status come from the store
 at the time of the question. This page is not a price list or a stock report.
-
-## Not published to the assistant
-
-The store has not provided delivery, shipping-fee, returns, refund, warranty, or
-discount terms. Do not invent them. Say the policy is not available and point the
-customer to store support.
 
 ## Limits
 

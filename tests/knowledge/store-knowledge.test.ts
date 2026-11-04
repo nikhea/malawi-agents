@@ -30,10 +30,8 @@ describe('store knowledge scopes', () => {
     expect(storeScope.access).toEqual([{ principal: 'self', role: 'viewer' }]);
   });
 
-  it('pins the store facts page into every run', () => {
-    expect(storeScope.pinnedContext).toEqual([
-      `${STORE_KNOWLEDGE_SCOPE_PATTERN}#${STORE_FACTS_PAGE}`,
-    ]);
+  it('does not pin a policy page into every run', () => {
+    expect(storeScope.pinnedContext).toBeUndefined();
     expect(storeScope.pages?.map((page) => page.key)).toContain(
       STORE_FACTS_PAGE,
     );
@@ -66,6 +64,15 @@ describe('store knowledge pages', () => {
     expect(storeKnowledgePages.map((page) => page.path)).toContain(
       STORE_FACTS_PAGE,
     );
+  });
+
+  it('treats store facts as an index, not a policy answer', () => {
+    const facts = storeKnowledgePages.find(
+      (page) => page.path === STORE_FACTS_PAGE,
+    );
+
+    expect(facts?.body).toMatch(/index, not a policy/i);
+    expect(facts?.body).not.toMatch(/has not provided/i);
   });
 
   it('has a name, description, and body for every page', () => {

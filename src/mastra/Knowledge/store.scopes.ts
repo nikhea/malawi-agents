@@ -35,11 +35,8 @@ export const storeKnowledgeScopes: KnowledgeScopeDeclarations = {
         key: STORE_FACTS_PAGE,
         name: "Store facts",
         description:
-          "What the assistant can answer, what is verified live, and which policies are not published.",
+          "Index of what the assistant can answer and which facts are checked live. Not a policy page.",
       },
-    ],
-    pinnedContext: [
-      `${STORE_KNOWLEDGE_SCOPE_PATTERN}#${STORE_FACTS_PAGE}`,
     ],
   },
 };

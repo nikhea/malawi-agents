@@ -26,5 +26,4 @@ export const storeKnowledge = new Knowledge({
   scopes: storeKnowledgeScopes,
   // Customers read. Writes are host-only (see seed.store-knowledge.ts).
   tools: { read: { maxTokens: 1200 } },
-  pinnedContext: { maxPins: 2, maxTokens: 400 },
 });
