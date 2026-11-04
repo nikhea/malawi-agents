@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { STORE_KNOWLEDGE_SCOPE } from '../../src/mastra/Knowledge/store.scopes';
 import {
   checkout_stock_safety,
   entity_id_privacy,
@@ -9,6 +10,17 @@ import {
 } from '../../src/mastra/instructions/store.instruction';
 
 describe('store agent truth and working-memory instructions', () => {
+  it('supplies the store scope so policy searches never guess', () => {
+    expect(storeInstructions).toContain('<knowledge_sources>');
+    expect(storeInstructions).toContain(
+      `scope: ["${STORE_KNOWLEDGE_SCOPE}"]`,
+    );
+    expect(storeInstructions).toContain('Never guess a scope name');
+    expect(storeInstructions).toContain(
+      'Never say a policy is unpublished until a',
+    );
+  });
+
   it('requires verified catalog facts and rejects fabricated data', () => {
     expect(storeInstructions).toContain('Never invent or assume Malawi Store data');
     expect(storeInstructions).toContain('Do not present imaginary categories');

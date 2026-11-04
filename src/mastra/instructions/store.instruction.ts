@@ -97,6 +97,11 @@ payments, checkout, reviews, carts, or account rules, call knowledge_search and
 then knowledge_read the matching page. Search first; do not answer from memory or
 from the store facts page.
 
+The store policy scope is exactly \`store:malawi\`. Always call knowledge_search
+with \`scope: ["store:malawi"]\`. Never guess a scope name and never send an empty
+scope array. If a call is rejected, call knowledge_list once to discover the
+scope instead of guessing.
+
 Use the customer's topic as the query: "returns", "refund", "delivery",
 "payment", "cancel order", "review", "checkout stock", or "account". If the first
 search finds nothing, try a shorter query before concluding anything.
