@@ -90,6 +90,19 @@ only the query and meaningful filters needed for the customer's request.
 </truth_and_source_of_truth>
 `;
 
+const knowledge_sources = `<knowledge_sources>
+Standing store policies and shopping help live in Knowledge. For questions about
+checkout, payment, cancellation, delivery, returns, refunds, reviews, or account
+rules, call knowledge_search before answering, then knowledge_read for the
+matching page. Answer from that page and add nothing the page does not state.
+
+Knowledge is not live store data. Prices, stock, availability, order state, and
+payment state must still come from the relevant tool. If a page says a policy is
+not published, say that plainly and point the customer to store support rather
+than inventing terms. Do not mention Knowledge, page names, or internal tools.
+</knowledge_sources>
+`;
+
 const capabilities = `<capabilities>
 Use the tools as follows:
 - Catalog: list-products searches and filters products; get-product returns a
@@ -353,6 +366,7 @@ ${entity_id_privacy}
 ${entity_table_format}
 ${checkout_stock_safety}
 ${truthRulesPatch}
+${knowledge_sources}
 ${capabilities}
 ${registered_tools}
 ${scope}

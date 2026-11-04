@@ -28,10 +28,14 @@ describe('store agent tool exposure', () => {
     };
     const converted = await agent.convertTools({});
 
-    expect(Object.keys(converted).sort()).toEqual(
-      Object.keys(storeAgentTools).sort(),
+    // Knowledge attaches its own search, read, list, and pin tools. They are not
+    // part of the store tool catalog and use Mastra's underscore names.
+    const storeTools = Object.keys(converted).filter(
+      (name) => !name.startsWith('knowledge_'),
     );
-    for (const name of Object.keys(converted)) {
+
+    expect(storeTools.sort()).toEqual(Object.keys(storeAgentTools).sort());
+    for (const name of storeTools) {
       expect(name).toMatch(/^[a-z0-9-]+$/);
     }
   });

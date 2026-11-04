@@ -9,6 +9,7 @@ import {
 } from "../processors/store-agent-output.processor";
 import { MAX_STEPS } from "../utils/constant.utils";
 import { storedAgentModels } from "../models/store-agent.model";
+import { storeKnowledge } from "../Knowledge/store.knowledge";
 
 export const storeAgent = new Agent({
   id: "store-agent",
@@ -18,8 +19,9 @@ export const storeAgent = new Agent({
     {
       role: "system",
       content: storeInstructions,
-    }
+    },
   ],
+  knowledge: storeKnowledge,
   model: storedAgentModels,
   tools: storeAppTools,
   inputProcessors: storedAgentInputProcessors,
