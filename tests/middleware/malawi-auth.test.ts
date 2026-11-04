@@ -1,8 +1,10 @@
 import {
   MASTRA_RESOURCE_ID_KEY,
+  MASTRA_SCOPES_KEY,
   RequestContext,
 } from '@mastra/core/request-context';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { STORE_KNOWLEDGE_SCOPE } from '../../src/mastra/Knowledge/store.scopes';
 import type { MalawiContext } from '../../src/mastra/lib/malawi-context';
 import { malawiAuthMiddleware } from '../../src/mastra/server/malawi-auth.middleware';
 import { user } from '../fixtures';
@@ -163,6 +165,9 @@ describe('malawiAuthMiddleware', () => {
     expect(requestContext.get('accessToken')).toBe('access-token');
     expect(requestContext.get('refreshToken')).toBe('refresh-token');
     expect(requestContext.getRaw(MASTRA_RESOURCE_ID_KEY)).toBe(user.id);
+    expect(requestContext.getRaw(MASTRA_SCOPES_KEY)).toEqual([
+      STORE_KNOWLEDGE_SCOPE,
+    ]);
     expect(next).toHaveBeenCalledTimes(1);
   });
 

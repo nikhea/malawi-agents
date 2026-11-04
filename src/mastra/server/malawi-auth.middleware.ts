@@ -1,9 +1,11 @@
 import {
   MASTRA_RESOURCE_ID_KEY,
+  MASTRA_SCOPES_KEY,
   type RequestContext,
 } from "@mastra/core/request-context";
 import type { MiddlewareHandler } from "@mastra/core/server";
 import { MalawiStore, isMalawiStoreError } from "@malawistore/store-sdk";
+import { STORE_KNOWLEDGE_SCOPE } from "../Knowledge/store.scopes";
 import type { MalawiContext } from "../lib/malawi-context";
 import { devFallbackCredentials, malawiApiBaseUrl } from "../lib/malawi-store";
 
@@ -103,6 +105,10 @@ export const malawiAuthMiddleware: MiddlewareHandler = async (c, next) => {
   if (refreshToken !== undefined) {
     requestContext.set("refreshToken", refreshToken);
   }
+
+  // Every signed-in customer can read the store-wide policy scope. The
+  // declaration in store.scopes.ts grants `viewer`, so this cannot write.
+  requestContext.setRaw(MASTRA_SCOPES_KEY, [STORE_KNOWLEDGE_SCOPE]);
 
   // Scope Mastra memory and thread access to the authenticated user.
   //

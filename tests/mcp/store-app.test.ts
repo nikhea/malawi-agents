@@ -327,11 +327,12 @@ describe('Malawi Store MCP App', () => {
       convertTools: (args: object) => Promise<Record<string, ToolWithApp>>;
     };
     const converted = await agent.convertTools({});
-
-    expect(Object.keys(converted).sort()).toEqual(
-      Object.keys(storeAppTools).sort(),
+    const storeTools = Object.keys(converted).filter(
+      (name) => !name.startsWith('knowledge_'),
     );
-    for (const name of Object.keys(converted)) {
+
+    expect(storeTools.sort()).toEqual(Object.keys(storeAppTools).sort());
+    for (const name of storeTools) {
       expect(converted[name].mcp?._meta?.ui?.resourceUri).toBe(STORE_APP_URI);
     }
   });

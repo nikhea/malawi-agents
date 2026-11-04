@@ -32,7 +32,8 @@ import {
   storeInputClassifier,
   storeOutputClassifier,
 } from "./classifier/store-validate.classifier";
-// import { KNOWLEDGE_ROUTES } from "@mastra/server/server-adapter";
+import { KNOWLEDGE_ROUTES } from "@mastra/server/server-adapter";
+import { storeKnowledge } from "./Knowledge/store.knowledge";
 
 type User = {
   id: string;
@@ -77,7 +78,9 @@ export const mastra = new Mastra({
   },
   editor: new MastraEditor(),
 
-  knowledge: {},
+  knowledge: {
+    storeKnowledge: storeKnowledge,
+  },
   storage: await createMastraStorage(),
   logger,
   observability: createMastraObservability({ logger }),
@@ -131,5 +134,6 @@ export const mastra = new Mastra({
         handler: malawiAuthMiddleware,
       },
     ],
+    apiRoutes: [...KNOWLEDGE_ROUTES],
   },
 });
