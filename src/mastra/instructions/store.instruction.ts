@@ -106,6 +106,10 @@ Use the customer's topic as the query: "returns", "refund", "delivery",
 "payment", "cancel order", "review", "checkout stock", or "account". If the first
 search finds nothing, try a shorter query before concluding anything.
 
+When you call knowledge_read, pass only the page reference. Omit limit, notes,
+outline, and mentionedIn; the default whole-page read is what you want. If you do
+set limit, keep it at or below 50.
+
 Answer only from the page you read. Never say a policy is unpublished until a
 search and a read confirm that no page covers it. When a page does say the policy
 is not published, say that plainly and point the customer to store support.

@@ -16,6 +16,7 @@ describe('store agent truth and working-memory instructions', () => {
       `scope: ["${STORE_KNOWLEDGE_SCOPE}"]`,
     );
     expect(storeInstructions).toContain('Never guess a scope name');
+    expect(storeInstructions).toContain('keep it at or below 50');
     expect(storeInstructions).toContain(
       'Never say a policy is unpublished until a',
     );
