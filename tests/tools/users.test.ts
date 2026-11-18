@@ -43,7 +43,7 @@ describe('getUserTool', () => {
 
     expect(result).toEqual(user);
     expectValidOutput(getUserTool.outputSchema, result);
-    expect(calls[0].url).toBe(apiUrl('/users/user-1'));
+    expect(calls[0].url).toBe(apiUrl('/admin/users/user-1'));
   });
 });
 

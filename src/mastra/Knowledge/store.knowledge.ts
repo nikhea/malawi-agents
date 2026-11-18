@@ -25,5 +25,5 @@ export const storeKnowledge = new Knowledge({
   embedder: embedder,
   scopes: storeKnowledgeScopes,
   // Customers read. Writes are host-only (see seed.store-knowledge.ts).
-  tools: { read: { maxTokens: 1200 } },
+  tools: { read: { maxTokens: 1200 }, write: false },
 });

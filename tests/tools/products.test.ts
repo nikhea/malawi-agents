@@ -146,7 +146,11 @@ describe('getProductTool', () => {
 
     const result = await executeTool(getProductTool, { id: 'prod-1' }, context());
 
-    expect(result).toEqual(productDetail);
+    // The tool's output schema projects away the SDK's `images` gallery rows.
+    expect(result).toEqual({
+      product: productDetail.product,
+      variants: productDetail.variants,
+    });
     expectValidOutput(getProductTool.outputSchema, result);
     expect(calls[0].url).toBe(apiUrl('/products/prod-1'));
   });

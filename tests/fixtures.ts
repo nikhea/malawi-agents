@@ -41,6 +41,7 @@ export const variant: Variant = {
 
 export const productDetail: ProductDetail = {
   product,
+  images: [],
   variants: [
     {
       id: variant.id,

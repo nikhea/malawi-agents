@@ -73,8 +73,7 @@ export const storeMemory = new Memory({
     // Chunked removal keeps the prompt prefix stable, so provider caches stay warm.
     // Setting messageHistory without lastMessages disables the default 10-message cap,
     // which is intended here. Do not also set lastMessages, or the sliding window returns.
-    messageHistory: { maxTokens: 12_000, atMaxRemoveTokens: 4_000 },
-
+    messageHistory: { maxTokens: 12_000, atMaxRemoveTokens: 4_200 },
     generateTitle: {
       model: TITLE_MODEL,
       instructions:

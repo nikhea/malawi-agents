@@ -32,6 +32,7 @@ import {
   storeInputClassifier,
   storeOutputClassifier,
 } from "./classifier/store-validate.classifier";
+import { codingAgent } from "./agents/coding-agent";
 import { KNOWLEDGE_ROUTES } from "@mastra/server/server-adapter";
 import { storeKnowledge } from "./Knowledge/store.knowledge";
 
@@ -48,7 +49,7 @@ export const mastra = new Mastra({
   environment: "development",
   cache: redisCache,
   workflows: { weatherWorkflow },
-  agents: { weatherAgent, storeAgent },
+  agents: { weatherAgent, storeAgent, codingAgent },
   tools: {
     ...productsTools,
     ...categoriesTools,
@@ -84,30 +85,29 @@ export const mastra = new Mastra({
   storage: await createMastraStorage(),
   logger,
   observability: createMastraObservability({ logger }),
-  studio: {
-    auth: new SimpleAuth<User>({
-      tokens: {
-        "sk-admin-token-123": {
-          id: "user-1",
-          name: "Admin User",
-          role: "admin",
-        },
-        "sk-user-token-456": {
-          id: "user-2",
-          name: "Regular User",
-          role: "user",
-        },
-      },
-    }),
-  },
+  // studio: {
+  //   auth: new SimpleAuth<User>({
+  //     tokens: {
+  //       "sk-admin-token-123": {
+  //         id: "user-1",
+  //         name: "Admin User",
+  //         role: "admin",
+  //       },
+  //       "sk-user-token-456": {
+  //         id: "user-2",
+  //         name: "Regular User",
+  //         role: "user",
+  //       },
+  //     },
+  //   }),
+  // },
   server: {
     mcpOptions: {
       setRequestAuth: (req) => {
         const authorization = req.headers.authorization;
-        const token =
-          authorization?.startsWith("Bearer ")
-            ? authorization.slice("Bearer ".length).trim()
-            : undefined;
+        const token = authorization?.startsWith("Bearer ")
+          ? authorization.slice("Bearer ".length).trim()
+          : undefined;
         if (!token) return;
 
         // MCP clients authenticate with the same Malawi access token the agent
@@ -119,7 +119,6 @@ export const mastra = new Mastra({
         };
       },
     },
-    // apiRoutes: [...KNOWLEDGE_ROUTES],
     middleware: [
       {
         path: "/api/tools/*",
